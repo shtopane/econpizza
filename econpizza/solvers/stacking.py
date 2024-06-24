@@ -122,7 +122,8 @@ def find_path_stacking(
                 derivatives = get_stst_derivatives(
                     self, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
                 # accumulate steady stat jacobian
-                get_stst_jacobian(self, derivatives, horizon, nvars, verbose)
+                jac_factorized = get_stst_jacobian(derivatives, horizon, nvars, verbose)
+                self['cache']['jac_factorized'] = jac_factorized
             # mark as compiled
             write_cache(self, horizon, pars, stst)
 

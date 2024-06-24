@@ -50,7 +50,7 @@ def lu_factor_from_sparse(lu):
     return (lu_factor, pr), pc
 
 
-def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
+def get_stst_jacobian(derivatives, horizon, nvars, verbose):
     """Calculate the steady state jacobian
     """
     st = time.time()
@@ -58,17 +58,19 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     jac = get_stst_jacobian_jit(derivatives, horizon)
     jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     # store result
-    model['cache']['jac'] = jac
+    # model['cache']['jac'] = jac
     # use sparse SuperLU because it is wayyy faster
     # sparse_jac = ssp.csc_matrix(jac)
     # sparse_jac_lu = ssp.linalg.splu(sparse_jac)
-    model['cache']['jac_factorized'] = lu_factor(jac) # lu_factor_from_sparse(sparse_jac_lu)
+    # model['cache']['jac_factorized'] = lu_factor(jac) # lu_factor_from_sparse(sparse_jac_lu)
+    jac_factorized = lu_factor(jac)
+
     if verbose:
         duration = time.time() - st
         print(
             f"(get_jacobian:) Jacobian accumulation and decomposition done ({duration:1.3f}s).")
 
-    return 0
+    return jac_factorized
 
 
 def vmapped_jvp(jvp, primals, tangents):
