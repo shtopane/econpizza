@@ -6,7 +6,10 @@ import jax
 import time
 import jax.numpy as jnp
 from functools import partial
-from jax._src.lax.linalg import lu_solve
+# from jax._src.lax.linalg import lu_solve
+from jax.scipy.linalg import lu_solve
+
+
 from grgrjax import callback_func, amax, newton_jax_jit
 
 
@@ -19,7 +22,9 @@ def callback_with_damp(cnt, err, fev, err_inner, dampening, ltime, verbose):
 def iteration_step(carry):
     (y, dampening, fev), (x, f, jvp_func, jacobian, factor), (_, tol, maxit) = carry
     _, v = jvp_func(x, y)
-    v = lu_solve(*jacobian[0], v, 0)[jacobian[1]]
+    # v = lu_solve(*jacobian[0], v, 0)[jacobian[1]]
+
+    v = lu_solve(jacobian,  v)
     dampening = jnp.minimum(dampening, factor*jnp.abs((y.T@y)/(v.T@y)))
     diff = f-v
     y += dampening*diff
@@ -37,7 +42,9 @@ def jvp_while_body(carry):
                              nsteps, tol, factor, verbose) = carry
     # first iteration
     f, _ = jvp_func(x, jnp.zeros_like(x))
-    f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
+    # f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
+
+    f = lu_solve(jacobian, f)
     # other iterations
     iteration_tol = jnp.minimum(1e-5, 1e-1*amax(f))
     init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor),

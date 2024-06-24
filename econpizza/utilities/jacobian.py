@@ -2,6 +2,9 @@ import jax
 import time
 import jax.numpy as jnp
 import scipy.sparse as ssp
+
+from jax.scipy.linalg import lu_factor
+
 from jax._src.api import partial
 from jax._src.typing import Array
 from grgrjax import jax_print
@@ -57,9 +60,9 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     # store result
     model['cache']['jac'] = jac
     # use sparse SuperLU because it is wayyy faster
-    sparse_jac = ssp.csc_matrix(jac)
-    sparse_jac_lu = ssp.linalg.splu(sparse_jac)
-    model['cache']['jac_factorized'] = lu_factor_from_sparse(sparse_jac_lu)
+    # sparse_jac = ssp.csc_matrix(jac)
+    # sparse_jac_lu = ssp.linalg.splu(sparse_jac)
+    model['cache']['jac_factorized'] = lu_factor(jac) # lu_factor_from_sparse(sparse_jac_lu)
     if verbose:
         duration = time.time() - st
         print(
