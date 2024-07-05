@@ -67,10 +67,13 @@ def find_path_stacking(
 
     st = time.time()
     # only skip jacobian calculation if it exists
+    # TODO: [caching] this is calculated in this function, so jacobian is cached after first run
+    # not to cache from steady state
     skip_jacobian = skip_jacobian if self['cache'].get(
         'jac_factorized') else False
 
     # get variables
+    # TODO: [caching] Cache this, shocks is taken from yml(so all available shocks)
     stst = d2jnp(self["stst"])
     nvars = len(self["variables"])
     pars = d2jnp(pars if pars is not None else self["pars"])
@@ -78,6 +81,7 @@ def find_path_stacking(
 
     # get initial guess
     x0 = jnp.array(list(init_state)) if init_state is not None else stst
+    # TODO: [caching] Cache distributions
     init_dist = init_dist if init_dist is not None else self['steady_state'].get(
         'distributions')
     dist0 = jnp.array(init_dist if init_dist is not None else jnp.nan)
@@ -94,6 +98,8 @@ def find_path_stacking(
             raise ValueError(f"Shock '{shock[0]}' is not defined.")
 
     if not self.get('distributions'):
+        # TODO: [caching-rep] context: func_eqns.
+        # jav_func cached after first iteration?
 
         if not check_if_compiled(self, horizon, pars, stst) or not self['context'].get('jav_func'):
             # get transition function
@@ -111,6 +117,10 @@ def find_path_stacking(
             jav_func_eqns_partial, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:
+        # TODO: [caching] 
+        # context: func_eqns, func_backw, func_forw
+        # steady_state: value_functions, distributions, decisions
+
         if not check_if_compiled(self, horizon, pars, stst) or not self['context'].get('jvp_func'):
             # get derivatives via AD and compile functions
             zero_shocks = jnp.zeros_like(shock_series).T

@@ -194,6 +194,7 @@ def _define_function(func_str, context):
     tmpf.write(func_str)
     tmpf.close()
 
+    # TODO: 3rd occasion of exec
     # define the function
     exec(compile(open(tmpf.name).read(), tmpf.name, "exec"), context)
 
@@ -324,6 +325,7 @@ def load(
     defs = model.get("definitions")
     defs = '' if defs is None else defs
     defs = '\n'.join(defs) if isinstance(defs, list) else defs
+    # TODO: Another exec
     exec(defs, model['context'])
     # get aggregate equations
     eqns = model["equations"].copy()
@@ -337,6 +339,7 @@ def load(
                      model.get('skip_check_if_defined'))
 
     # create fixed (time invariant) grids
+    # TODO: inside of this function - another exec
     grids.create_grids(model.get('distributions'), model["context"], verbose)
     shocks = model.get("shocks") or ()
 

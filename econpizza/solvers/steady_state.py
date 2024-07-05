@@ -88,6 +88,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     # default setup
     tol_backwards = tol if tol_backwards is None else tol_backwards
     tol_forwards = tol*1e-2 if tol_forwards is None else tol_forwards
+    # TODO: [caching]: consider setup as part of cache key
     setup = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
 
     # parse and compile steady_state section from yaml
@@ -96,6 +97,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
 
     # check if model is already cached
     key = str(f'{setup};{d2jnp(fixed_vals)};{d2jnp(init_vals)};{init_wf.sum()}')
+   
     cache = self['cache']
     if key in self['cache']['steady_state_keys'] and not force:
         self['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
@@ -114,6 +116,8 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     func_pre_stst = self['context']['func_pre_stst']
 
     # get initial values for heterogenous agents
+    # TODO: [caching] cache here? This is from the stored init_run, but can't we have a function to compute this
+    # fast without storing the init run?
     decisions_output_init = self['context']['init_run'].get(
         'decisions_output')
 
@@ -144,6 +148,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
 
     self["stst"] = dict(zip(evars, stst_vals))
     self["pars"] = dict(zip(par_names, par_vals))
+    # TODO: do we need newton_result in disk cache? Guess yes
     self['steady_state']["newton_result"] = res
     self['steady_state']["values_and_pars"] = deepcopy(
         self["stst"]), deepcopy(self["pars"])
