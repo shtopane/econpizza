@@ -7,6 +7,8 @@ from jax.experimental.host_callback import id_print as jax_print
 from .utilities.interp import interpolate
 from .utilities.grids import markov_rouwenhorst, rouwenhorst_grid_from_stationary
 
+def print_shape_and_dtype(obj, obj_name = "obj"):
+    print(f"{obj_name} shape: {obj.shape}, dtype: {obj.dtype}")
 
 def percentile(x, dist, share):
     """percentiles function
