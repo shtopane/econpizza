@@ -14,6 +14,7 @@ from .solvers.solve_linear import find_path_linear
 from .solvers.solve_linear_state_space import solve_linear_state_space, find_path_linear_state_space
 from .solvers.shooting import find_path_shooting
 from .parser import parse, load
+from .config import config
 
 
 # set number of cores for XLA
