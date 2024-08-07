@@ -25,6 +25,20 @@ jax.config.update("jax_enable_x64", True)
 # create local alias
 copy = deepcopy
 
+if config.enable_jax_persistent_cache == True:
+    jax.config.update("jax_compilation_cache_dir", "/tmp/jax_cache")
+    jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
+    jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
+
+if config.enable_persistent_cache == True:
+    # Make directory for caching
+     # Directory path for caching
+    cache_dir = "/tmp/econpizza_cache"
+    
+    # Make directory for caching if it doesn't exist
+    os.makedirs(cache_dir, exist_ok=True)
+    pass
+
 
 class PizzaModel(dict):
     """Base class for models. Contains all necessary methods and informations.
@@ -87,8 +101,16 @@ class PizzaModel(dict):
         rdict.update({oput: dists_storage[i] for i, oput in enumerate(dist_names)})
 
         return rdict
+    
+    def solve_stst(self, *args, **kwargs):
+        steady_state = solve_stst(self, *args, **kwargs)
 
-    solve_stst = solve_stst
+        self['context']['MY_TEST'] = "TEST INTERCEPTING STEADY STATE"
+        return steady_state
+
+    # TODO: create wrappers around the steady state and other functions
+    # to make them cache the steady state
+    # solve_stst = solve_stst
     find_path = find_path_stacking
     find_path_linear = find_path_linear
     find_path_shooting = find_path_shooting
