@@ -103,9 +103,13 @@ class PizzaModel(dict):
         return rdict
     
     def solve_stst(self, *args, **kwargs):
+        # 1. Validate cache
+        # 2. Restore objects and populate self
+        # 3. Return steady_state
         steady_state = solve_stst(self, *args, **kwargs)
-
-        self['context']['MY_TEST'] = "TEST INTERCEPTING STEADY STATE"
+        
+        # 4. No cache - solve steady state without caching
+        # 5. Return steady state
         return steady_state
 
     # TODO: create wrappers around the steady state and other functions
