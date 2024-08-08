@@ -8,3 +8,4 @@ pytest
 testbook
 ipykernel
 grgrlib
+orbax-checkpoint==0.5.20
