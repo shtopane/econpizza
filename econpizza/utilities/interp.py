@@ -6,12 +6,12 @@ import jax.numpy as jnp
 from functools import partial
 from jax._src.typing import Array
 
+import sys
 
 interpolate_numpy = jnp.vectorize(jnp.interp, signature='(nq),(n),(n)->(nq)')
 
-
 @partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
-def interpolate(x: Array, xq: Array, y: Array) -> Array:
+def interpolate(x: Array, xq: Array, y: Array) -> Array: # x (a, ), xq (b, ), y (a, )
     """Efficient linear interpolation exploiting monotonicity.
 
     Complexity O(n+nq), so most efficient when x and xq have comparable number of points.
@@ -36,7 +36,7 @@ def interpolate(x: Array, xq: Array, y: Array) -> Array:
 
     return yq
 
-
+# TODO: Not used
 def interpolate_fast(xp: Array, x: Array, fp: Array) -> Array:
     """
     One-dimensional linear interpolation for monotonically increasing sample points.
@@ -48,7 +48,7 @@ def interpolate_fast(xp: Array, x: Array, fp: Array) -> Array:
     return jax.vmap(jnp.interp)(jax.lax.broadcast(x, (xp.shape[0],)), xp, fp)
 
 
-def interpolate_coord_robust_vector(x: Array, xq: Array) -> (Array, Array):
+def interpolate_coord_robust_vector(x: Array, xq: Array) -> (Array, Array): # x(a,), xq(b, )
     """Get representation xqi, xqpi of xq interpolated against x:
     xq = xqpi * x[xqi] + (1-xqpi) * x[xqi+1]
 
@@ -74,7 +74,7 @@ def interpolate_coord_robust_vector(x: Array, xq: Array) -> (Array, Array):
 interpolate_coord = jnp.vectorize(
     interpolate_coord_robust_vector, signature='(nq),(nq)->(nq),(nq)')
 
-
+# xq dimensions change between models - not appropriate for exporting?
 def interpolate_coord_robust(x: Array, xq: Array, check_increasing=False) -> (Array, Array):
     """Linear interpolation exploiting monotonicity only in data x, not in query points xq.
     Simple binary search, less efficient but more robust.
@@ -108,8 +108,9 @@ def interpolate_coord_robust(x: Array, xq: Array, check_increasing=False) -> (Ar
         return i.reshape(xq.shape), pi.reshape(xq.shape)
 
 
+# used in hank2
 @partial(jnp.vectorize, signature='(nq),(nq),(n)->(nq)')
-def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array:
+def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array: # x_i: (a, ), x_pi: (a, ), y: (a, )
     """Use representation xqi, xqpi to get yq at xq:
     yq = xqpi * y[xqi] + (1-xqpi) * y[xqi+1]
 
@@ -125,9 +126,11 @@ def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array:
     """
     return x_pi*y[x_i] + (1-x_pi)*y[x_i+1]
 
-
+# used in hank 2
 @partial(jnp.vectorize, signature='(ni),(ni,nj)->(nj),(nj)')
-def lhs_equals_rhs_interpolate(lhs: Array, rhs: Array) -> (Array, Array):
+def lhs_equals_rhs_interpolate(lhs: Array, rhs: Array) -> (Array, Array): # lhs: (a, ), rhs: (a, a)
+    print(lhs.shape, rhs.shape)
+    # sys.exit()
     """
     Given lhs (i) and rhs (i,j), for each j, find the i such that
 
