@@ -14,7 +14,7 @@ from .solvers.solve_linear import find_path_linear
 from .solvers.solve_linear_state_space import solve_linear_state_space, find_path_linear_state_space
 from .solvers.shooting import find_path_shooting
 from .parser import parse, load
-from .config import config
+from .config import ECONPIZZA_CACHE_DIR, config
 
 
 # set number of cores for XLA
@@ -32,9 +32,9 @@ if config.enable_jax_persistent_cache == True:
 
 if config.enable_persistent_cache == True:
     # Make directory for caching
-     # Directory path for caching
-    cache_dir = "/tmp/econpizza_cache"
-    
+    # Directory path for caching
+    cache_dir = ECONPIZZA_CACHE_DIR
+
     # Make directory for caching if it doesn't exist
     os.makedirs(cache_dir, exist_ok=True)
     pass
