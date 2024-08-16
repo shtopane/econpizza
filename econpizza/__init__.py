@@ -102,15 +102,7 @@ class PizzaModel(dict):
 
         return rdict
     
-    def solve_stst(self, *args, **kwargs):
-        steady_state = solve_stst(self, *args, **kwargs)
-
-        self['context']['MY_TEST'] = "TEST INTERCEPTING STEADY STATE"
-        return steady_state
-
-    # TODO: create wrappers around the steady state and other functions
-    # to make them cache the steady state
-    # solve_stst = solve_stst
+    solve_stst = solve_stst
     find_path = find_path_stacking
     find_path_linear = find_path_linear
     find_path_shooting = find_path_shooting
