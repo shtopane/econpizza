@@ -14,7 +14,7 @@ from .solvers.solve_linear import find_path_linear
 from .solvers.solve_linear_state_space import solve_linear_state_space, find_path_linear_state_space
 from .solvers.shooting import find_path_shooting
 from .parser import parse, load
-from .config import ECONPIZZA_CACHE_DIR, config
+from .config import ECONPIZZA_CACHE_DIR, JAX_CACHE_DIR, config
 
 
 # set number of cores for XLA
@@ -26,7 +26,7 @@ jax.config.update("jax_enable_x64", True)
 copy = deepcopy
 
 if config.enable_jax_persistent_cache == True:
-    jax.config.update("jax_compilation_cache_dir", "/tmp/jax_cache")
+    jax.config.update("jax_compilation_cache_dir", JAX_CACHE_DIR)
     jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
     jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
 
