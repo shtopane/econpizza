@@ -101,6 +101,7 @@ class PizzaModel(dict):
         rdict.update({oput: dists_storage[i] for i, oput in enumerate(dist_names)})
 
         return rdict
+
     solve_stst = solve_stst
     find_path = find_path_stacking
     find_path_linear = find_path_linear
