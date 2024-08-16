@@ -9,13 +9,13 @@ from functools import partial
 from jax._src.lax.linalg import lu_solve
 from grgrjax import callback_func, amax, newton_jax_jit
 
-
+# Side-effect, not jittable
 def callback_with_damp(cnt, err, fev, err_inner, dampening, ltime, verbose):
     inner = f' | inner {err_inner:.2e}'
     damp = f' | dampening {dampening:1.3f}'
     return callback_func(cnt, err, inner, damp, fev=fev, ltime=ltime, verbose=verbose)
 
-
+# Has jvp_func, not exportable, calling outside function as well
 def iteration_step(carry):
     (y, dampening, fev), (x, f, jvp_func, jacobian, factor), (_, tol, maxit) = carry
     _, v = jvp_func(x, y)
@@ -26,12 +26,14 @@ def iteration_step(carry):
     eps = amax(diff)
     return (y, dampening, fev+1), (x, f, jvp_func, jacobian, factor), (eps, tol, maxit)
 
-
+# Carry has array's but has function as well
 def iteration_cond(carry):
     (_, _, fev), _, (eps, tol, maxit) = carry
     return jnp.logical_and(fev <= maxit, eps > tol)
 
-
+# Carry has function inside. But the function is partial try nonetheless
+# These will be a lot of writing
+# Differences between hank and hank2
 def jvp_while_body(carry):
     (x, _, _, cnt, fev, _), (jvp_func, jacobian, maxit,
                              nsteps, tol, factor, verbose) = carry
@@ -46,7 +48,15 @@ def jvp_while_body(carry):
         iteration_cond, iteration_step, init)
     return (x-y, f, dampening, cnt+1, fev+fev_inner, err_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
 
-
+# Here err_inner changes type from int64[] to float64[]
+# carry[0][0] (3582)
+# carry[0][1] (3582)
+# carry[0][2] (float64)
+# carry[0][3] (int64)
+# carry[0][4] (int64)
+# carry[0][5] (int64)
+# carry[1][0] Partial(build_aggr_het_agent_funcs)
+# TODO: Continue from another func
 def jvp_while_cond(carry):
     (_, f, dampening, cnt, fev, err_inner), (_,
                                              _, maxit, nsteps, tol, _, verbose) = carry
@@ -58,7 +68,13 @@ def jvp_while_cond(carry):
                        err_inner=err_inner, dampening=dampening, ltime=None, verbose=verbose)
     return cond
 
-
+# For representative agents only
+# val[0] Partial(val_and_jacrev)
+# val[1] float64(36)
+# val[2] float64(36,36)
+# val[3] float64(201,36)
+# val[4] float64(199,8)
+# i int64
 def sweep_banded_down(val, i):
     jav_func, fmod, forward_mat, X, shocks = val
     # calculate value and jacobians
@@ -69,14 +85,16 @@ def sweep_banded_down(val, i):
     fmod = jnp.linalg.solve(bmat, fval - jac_f2xLag @ fmod)
     return (jav_func, fmod, forward_mat, X, shocks), (fmod, forward_mat)
 
-
+# val[0] float64(199,36,36)
+# val[1] float64(199,36)
+# val[2] float64(36)
 def sweep_banded_up(val, i):
     forward_mat, fvals, fval = val
     # go backwards in time
     fval = fvals[i] - forward_mat[i] @ fval
     return (forward_mat, fvals, fval), fval
 
-
+# Not for exporting
 def check_status(err, cnt, maxit, tol):
     """Check whether to exit iteration and compile error message"""
     # exit causes
@@ -89,7 +107,14 @@ def check_status(err, cnt, maxit, tol):
     else:
         return False, (False, "")
 
-
+# jvp_func Partial(build_aggr_het_agent_funcs)
+# jacobian: tuple
+#  jacobian[0][0] (a, a)
+#  jacobian[0][1] (a, )
+#  jacobian[1] (a, )
+# x_init (b, c)
+# verbose bool
+# tol float64 (see other floats from func definition)
 def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nsteps=30, factor=1.5):
     """Newton solver for heterogeneous agents models as described in the paper.
 
@@ -121,7 +146,11 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nste
 
     return x, f, not success, mess
 
-
+# jav_func Partial(val_and_jacrev)
+# nvars 36(int not jax)
+# horizon 200(int not jax)
+# X (201, 36)
+# shocks (199, 8)
 def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30, tol=1e-8):
     """Newton solver for representative agents models.
 
@@ -162,7 +191,7 @@ def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30
 
     return X, out, not success, mess
 
-
+# Not okay for export?
 def newton_jax_jit_wrapper(func, init, **args):
     """Wrapper around grgrjax.newton.newton_jax_jit. Returns correct flags and messages.
     """

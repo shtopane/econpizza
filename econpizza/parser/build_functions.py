@@ -8,8 +8,15 @@ from grgrjax import jvp_vmap, vjp_vmap, val_and_jacfwd
 from .het_agent_base_funcs import *
 from ..utilities import grids, dists, interp
 
+# TODO:[caching] This file as well?
 
+# distributions (1, 4, 50) (HANK) (1, 3, 10, 20) (HANK2)
+# decisions_outputs (2, 4, 50) (HANK) (4, 3, 10, 20) (HANK2)
+# grids <- python list but grids[0] (50, ) (HANK), (10, ) for [0] and (20, ) for [1] (HANK2)
+# transition (4, 4) (HANK) (3, 3) (HANK2)
+# indices <- python list [0] (HANK) [1, 0] (HANK2)
 def func_forw_generic(distributions, decisions_outputs, grids, transition, indices):
+    # print(f"distributions: {distributions.shape}, decisions_outputs: {decisions_outputs.shape}, grids: {grids.shape}, transition: {transition.shape}, indices: {indices.shape}")
     # prototype for one distribution
     # should be a for-loop for more than one distribution
     (dist, ) = distributions
@@ -27,7 +34,10 @@ def func_forw_generic(distributions, decisions_outputs, grids, transition, indic
         dist = dists.expect_transition(transition.T, forwarded_dist)
     return jnp.array((dist, ))
 
-
+# decisions_outputs (2, 4, 50) (HANK) (4, 3, 10, 20) (HANK2)
+# grids <- python list but grids[0] (50, ) (HANK), (10, ) for [0] and (20, ) for [1] (HANK2)
+# transition (4, 4) (HANK) (3, 3) (HANK2)
+# indices <- python list [0] (HANK) [1, 0] (HANK2)
 def func_forw_stst_generic(decisions_outputs, tol, maxit, grids, transition, indices):
     # prototype for one distribution, as with _func_forw
     endog_inds0, endog_probs0 = interp.interpolate_coord_robust(
@@ -43,7 +53,13 @@ def func_forw_stst_generic(decisions_outputs, tol, maxit, grids, transition, ind
     max_cnt = jnp.max(dist_cnt, )
     return jnp.array((dist, )), max_cnt
 
-
+# x (18, ) (a, )
+# fixed_values (45, ) (b, ) [27 should be c?, 36 d?]
+# mapping (tuple 4)
+#  mapping[0] (36, 18) (d, a)
+#  mapping[1] (27, 18) (c, a)
+#  mapping[2] (36, 45) (d, b)
+#  mapping[3] (27, 45) (c, b)
 def func_pre_stst(x, fixed_values, mapping):
     # translate init guesses & fixed values to vars & pars
     x2var, x2par, fixed2var, fixed2par = mapping
@@ -51,13 +67,18 @@ def func_pre_stst(x, fixed_values, mapping):
     pars = x2par@x + fixed2par@fixed_values
     return evars, pars
 
-
+# y (a, )
+# func_pre_stst Partial(<function func_pre_stst
+# Partial(<function func_eqns
+# TODO: [function]
 def func_stst_rep_agent(y, func_pre_stst, func_eqns):
     x, par = func_pre_stst(y)
     x = x[..., None]
     return func_eqns(x, x, x, x, pars=par), None
 
-
+# y (7, ) (HANK) (20, ) HANK2
+# other inputs are partials 
+# TODO: [function]
 def func_stst_het_agent(y, func_pre_stst, find_stat_wf, func_forw_stst, func_eqns):
 
     x, par = func_pre_stst(y)
@@ -77,13 +98,14 @@ def func_stst_het_agent(y, func_pre_stst, find_stat_wf, func_forw_stst, func_eqn
 
     return out, aux
 
-
+# Export these directly?
+# Here vjp_order should be 1?
 vaj_stst_het_agent = jax.jit(val_and_jacfwd(
     func_stst_het_agent, argnums=0, has_aux=True))
 vaj_stst_rep_agent = jax.jit(val_and_jacfwd(
     func_stst_rep_agent, argnums=0, has_aux=True))
 
-
+# TODO: [function]
 def get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init, fixed_values, pre_stst_mapping, tol_backw, maxit_backw, tol_forw, maxit_forw):
     """Get a function that evaluates the steady state
     """
@@ -105,7 +127,8 @@ def get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisi
 
     return jax.tree_util.Partial(vaj_stst_het_agent, func_pre_stst=partial_pre_stst, find_stat_wf=backwards_stst, func_forw_stst=forwards_stst, func_eqns=partial_eqns)
 
-
+# TODO: [function]
+# TODO: Not jittable right away, need rewrite to be jittable
 def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, verbose):
 
     st = time.time()
@@ -141,7 +164,7 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
 
     return f2X, f2do, do2x
 
-
+# TODO: [function]
 def get_stacked_func_het_agents(func_backw, func_forw, func_eqns, stst, wfSS, horizon, nvars):
     """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations.
     """
@@ -165,7 +188,8 @@ def get_stacked_func_het_agents(func_backw, func_forw, func_eqns, stst, wfSS, ho
 
     return stacked_func_local, backwards_sweep_local, forwards_sweep_local, second_sweep_local
 
-
+# TODO: not jittable because of model(right away, need to pass a flatten tree
+# also, doing side-effects
 def build_aggr_het_agent_funcs(model, zpars, nvars, stst, zshocks, horizon):
 
     shocks = model.get("shocks") or ()

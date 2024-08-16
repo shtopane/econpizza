@@ -6,7 +6,7 @@ from jax._src.api import partial
 from jax._src.typing import Array
 from grgrjax import jax_print
 
-
+# i_and_j(), carry[0](a, b, a, b)[ex: (199, 28, 199, 28)], carry[1]()
 def accumulate(i_and_j: Array, carry: (Array, Array)) -> (Array, int):
     # accumulate effects over different horizons
     jac, horizon = carry
@@ -16,6 +16,19 @@ def accumulate(i_and_j: Array, carry: (Array, Array)) -> (Array, int):
     return jac, horizon
 
 
+# derivatives: tuple with 5 arrays each
+# HANK
+# [18,18,1]
+# [18,18,1]
+# [18,18,1]
+# [18,199,2,4,50] <- dimensions mismatch
+# [2,4,50,199,18] <- dimensions mismatch
+# HANK 2
+# [28,28,1]
+# [28,28,1]
+# [28,28,1]
+# [28,199,4,3,10,20] <- dimensions mismatch
+# [4,3,10,20,199,28] <- dimensions mismatch
 @jax.jit
 def get_stst_jacobian_jit(derivatives, horizon):
     # load derivatives
@@ -35,7 +48,7 @@ def get_stst_jacobian_jit(derivatives, horizon):
     jac, _ = jax.lax.fori_loop(0, (horizon-2)**2, accumulate, (jac, horizon))
     return jac
 
-
+# cannot export, lu is type SuperLU object
 def lu_factor_from_sparse(lu):
     """Translate the output of scipy.sparse.linalg.splu to something that jax.scipy.linalg.lu_solve understands
     """
@@ -46,7 +59,7 @@ def lu_factor_from_sparse(lu):
     lu_factor = lu.L.todense() - jnp.eye(n) + lu.U.todense()
     return (lu_factor, pr), pc
 
-
+# cannot export, function not jittable. Export `get_stst_jacobian_jit`
 def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     """Calculate the steady state jacobian
     """
@@ -67,7 +80,7 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
 
     return 0
 
-
+# No, jvp is a function
 def vmapped_jvp(jvp, primals, tangents):
     """Compact version of jvp_vmap from grgrjax
     """
@@ -75,7 +88,7 @@ def vmapped_jvp(jvp, primals, tangents):
     y, jac = jax.vmap(pushfwd, out_axes=(None, -1), in_axes=-1)(tangents)
     return y, jac
 
-
+# No, jvp in carry
 def jac_slicer(i, carry):
     """Calclulates a chunk of the jacobian
     """
@@ -89,7 +102,7 @@ def jac_slicer(i, carry):
     jac = jax.lax.dynamic_update_slice(jac, jac_slice, (0, i*chunk_size))
     return (f, jac), (x, jvp, zeros_slice, marginal_base, chunk_size)
 
-
+# not used
 def jac_and_value_sliced(jvp, chunk_size, zero_slice, eye_chunk, x):
     """Calculate the value and jacobian at `x` while only evaluating chunks of the full jacobian at times. May be necessary due to memmory requirements.
     """
@@ -101,7 +114,7 @@ def jac_and_value_sliced(jvp, chunk_size, zero_slice, eye_chunk, x):
     (f, jac), _ = jax.lax.fori_loop(0, nloops, jac_slicer, (init_vals, args))
     return f, jac
 
-
+# not used
 def get_jac_and_value_sliced(dimx, jvp, newton_args):
     """Get the jac_and_value_sliced function. This is necessary because objects depending on chunk_size must be defined outsite the jitted function
     """

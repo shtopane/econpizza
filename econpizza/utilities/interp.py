@@ -109,8 +109,9 @@ def interpolate_coord_robust(x: Array, xq: Array, check_increasing=False) -> (Ar
 
 
 # used in hank2
+# x_i: (a, ), x_pi: (a, ), y: (a, )
 @partial(jnp.vectorize, signature='(nq),(nq),(n)->(nq)')
-def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array: # x_i: (a, ), x_pi: (a, ), y: (a, )
+def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array:
     """Use representation xqi, xqpi to get yq at xq:
     yq = xqpi * y[xqi] + (1-xqpi) * y[xqi+1]
 
@@ -127,10 +128,9 @@ def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array: # x_i: (a, ), x_pi:
     return x_pi*y[x_i] + (1-x_pi)*y[x_i+1]
 
 # used in hank 2
+# lhs: (a, ), rhs: (a, a)
 @partial(jnp.vectorize, signature='(ni),(ni,nj)->(nj),(nj)')
-def lhs_equals_rhs_interpolate(lhs: Array, rhs: Array) -> (Array, Array): # lhs: (a, ), rhs: (a, a)
-    print(lhs.shape, rhs.shape)
-    # sys.exit()
+def lhs_equals_rhs_interpolate(lhs: Array, rhs: Array) -> (Array, Array): 
     """
     Given lhs (i) and rhs (i,j), for each j, find the i such that
 
