@@ -75,7 +75,7 @@ def jvp_while_cond(carry):
 # val[3] float64(201,36)
 # val[4] float64(199,8)
 # i int64
-def sweep_banded_down(val, i):
+def sweep_tridiag_down(val, i):
     jav_func, fmod, forward_mat, X, shocks = val
     # calculate value and jacobians
     fval, (jac_f2xLag, jac_f2x, jac_f2xPrime) = jav_func(
@@ -88,7 +88,7 @@ def sweep_banded_down(val, i):
 # val[0] float64(199,36,36)
 # val[1] float64(199,36)
 # val[2] float64(36)
-def sweep_banded_up(val, i):
+def sweep_tridiag_up(val, i):
     forward_mat, fvals, fval = val
     # go backwards in time
     fval = fvals[i] - forward_mat[i] @ fval
@@ -151,7 +151,7 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nste
 # horizon 200(int not jax)
 # X (201, 36)
 # shocks (199, 8)
-def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30, tol=1e-8):
+def newton_for_tridiag_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30, tol=1e-8):
     """Newton solver for representative agents models.
 
     Parameters
@@ -167,9 +167,9 @@ def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30
 
     while True:
 
-        _, (fvals, forward_mat) = jax.lax.scan(sweep_banded_down, (jav_func, jnp.zeros(
+        _, (fvals, forward_mat) = jax.lax.scan(sweep_tridiag_down, (jav_func, jnp.zeros(
             nvars), jnp.zeros((nvars, nvars)), X, shocks), jnp.arange(horizon-1))
-        _, out = jax.lax.scan(sweep_banded_up, (forward_mat, fvals, jnp.zeros(
+        _, out = jax.lax.scan(sweep_tridiag_up, (forward_mat, fvals, jnp.zeros(
             nvars)), jnp.arange(horizon-1), reverse=True)
 
         X = X.at[1:-1].add(-out)

@@ -6,10 +6,10 @@ import time
 import jax.numpy as jnp
 from grgrjax import val_and_jacrev
 from ..parser import d2jnp
-from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
+from ..parser.build_generic_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 from ..parser.checks import check_if_compiled
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
-from ..utilities.newton import newton_for_jvp, newton_for_banded_jac, newton_jax_jit_wrapper
+from ..utilities.newton import newton_for_jvp, newton_for_tridiag_jac, newton_jax_jit_wrapper
 
 
 def write_cache(model, horizon, pars, stst):
@@ -24,6 +24,7 @@ def find_path_stacking(
     shock=None,
     init_state=None,
     init_dist=None,
+    init_guess=None,
     pars=None,
     horizon=200,
     use_solid_solver=False,
@@ -42,6 +43,8 @@ def find_path_stacking(
         initial state, defaults to the steady state values
     init_dist : array, optional
         initial distribution, defaults to the steady state distribution
+    init_guess : array, optional
+        initial guess on the sequence trajectory, defaults to the steady state
     pars : dict, optional
         alternative parameters. Warning: do only change those parameters that are invariant to the steady state.
     horizon : int, optional
@@ -82,7 +85,7 @@ def find_path_stacking(
         'distributions')
     dist0 = jnp.array(init_dist if init_dist is not None else jnp.nan)
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
-    x_init = x_stst.at[0].set(x0)
+    x_init = init_guess if init_guess is not None else x_stst.at[0].set(x0)
 
     # deal with shocks if any
     shock_series = jnp.zeros((horizon-1, len(shocks)))
@@ -107,7 +110,7 @@ def find_path_stacking(
 
         # actual newton iterations
         jav_func_eqns_partial = self['context']['jav_func']
-        x_out, f, flag, mess = newton_for_banded_jac(
+        x_out, f, flag, mess = newton_for_tridiag_jac(
             jav_func_eqns_partial, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:
