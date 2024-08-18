@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 from .dists import stationary_distribution
 
-
+# scalars float(passed as int), int and float
 def log_grid(amax, n, amin=0):
     """Create grid between amin and amax that is equidistant in logs."""
     pivot = jnp.abs(amin) + 0.25
@@ -13,17 +13,17 @@ def log_grid(amax, n, amin=0):
     a_grid = a_grid.at[0].set(amin)  # make sure *exactly* equal to amin
     return a_grid
 
-
+# TODO: not used
 def mean(x, pi):
     """Mean of discretized random variable with support x and probability mass function pi."""
     return jnp.sum(pi * x)
 
-
+# TODO: not used
 def variance(x, pi):
     """Variance of discretized random variable with support x and probability mass function pi."""
     return jnp.sum(pi * (x - jnp.sum(pi * x)) ** 2)
 
-
+# float, float, int
 def markov_rouwenhorst(rho, sigma, N):
     """Rouwenhorst method analog to markov_tauchen"""
 
@@ -51,13 +51,14 @@ def markov_rouwenhorst(rho, sigma, N):
     y = rouwenhorst_grid_from_stationary(sigma, pi)
     return y, pi, Pi
 
-
+# sigma: float
+# hank: stationary_distribution(4,), hank2: stationary_distribution(3,) -> stationary_distribution(a,)
 def rouwenhorst_grid_from_stationary(sigma, stationary_distribution):
     s = jnp.linspace(-1, 1, len(stationary_distribution))
     s *= (sigma / jnp.sqrt(variance(s, stationary_distribution)))
     return jnp.exp(s) / jnp.sum(stationary_distribution * jnp.exp(s))
 
-
+# TODO: Cannot JIT without refactoring, so out of the picture.
 def create_grids(distributions, context, verbose):
     """Get the strings of functions that define the grids.
     """
