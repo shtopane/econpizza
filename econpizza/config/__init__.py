@@ -40,3 +40,6 @@ class EconPizzaConfig(dict):
 config = EconPizzaConfig()
 
 config.enable_persistent_cache = False
+
+ECONPIZZA_CACHE_DIR = "/tmp/econpizza_cache"
+JAX_CACHE_DIR = "/tmp/jax_cache"
