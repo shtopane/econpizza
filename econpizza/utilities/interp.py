@@ -10,6 +10,8 @@ import sys
 
 interpolate_numpy = jnp.vectorize(jnp.interp, signature='(nq),(n),(n)->(nq)')
 
+# Not possible, since searchsorted does not support symbolic shapes
+# JITTING speeds things up though?
 @partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
 def interpolate(x: Array, xq: Array, y: Array) -> Array: # x (a, ), xq (b, ), y (a, )
     """Efficient linear interpolation exploiting monotonicity.
