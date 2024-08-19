@@ -50,7 +50,7 @@ def _create_cache_dir(folder_name: str):
 
     return folder_path
 
-def enable_cache():
+def enable_persistent_cache():
     """Create folders for JAX and EconPizza cache.
     By default, they are created in callee working directory.
     """
