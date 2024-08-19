@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 from copy import deepcopy
 
+from econpizza.utilities.export.interp import export_apply_coord
+
 from . import examples
 from .__version__ import __version__
 from .solvers.steady_state import solve_stst
@@ -37,6 +39,9 @@ if config.enable_persistent_cache == True:
 
     # Make directory for caching if it doesn't exist
     os.makedirs(cache_dir, exist_ok=True)
+
+    # Call exporting module
+    export_apply_coord()
     pass
 
 
