@@ -2,8 +2,8 @@
 class EconPizzaConfig(dict):
     def __init__(self, *args, **kwargs):
         super(EconPizzaConfig, self).__init__(*args, **kwargs)
-        self._enable_persistent_cache = None
-        self._enable_jax_persistent_cache = None
+        self._enable_persistent_cache = False
+        self._enable_jax_persistent_cache = False
 
     @property
     def enable_persistent_cache(self):
