@@ -1,4 +1,8 @@
 """Configuration object"""
+
+import os
+import jax
+
 class EconPizzaConfig(dict):
     def __init__(self, *args, **kwargs):
         super(EconPizzaConfig, self).__init__(*args, **kwargs)
@@ -39,7 +43,23 @@ class EconPizzaConfig(dict):
 
 config = EconPizzaConfig()
 
-config.enable_persistent_cache = False
+def _create_cache_dir(folder_name: str):
+    cwd = os.getcwd()
+    folder_path = os.path.join(cwd, folder_name)
+    os.makedirs(folder_path, exist_ok=True)
 
-ECONPIZZA_CACHE_DIR = "/tmp/econpizza_cache"
-JAX_CACHE_DIR = "/tmp/jax_cache"
+    return folder_path
+
+def enable_cache():
+    """Create folders for JAX and EconPizza cache.
+    By default, they are created in callee working directory.
+    """
+    if config.enable_persistent_cache == True:
+        _create_cache_dir("econpizza_cache")
+        
+        folder_name = _create_cache_dir("jax_cache")
+
+        jax.config.update("jax_compilation_cache_dir", folder_name)
+        jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
+        jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
+
