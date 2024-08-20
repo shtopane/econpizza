@@ -110,7 +110,7 @@ def interpolate_coord_robust(x: Array, xq: Array, check_increasing=False) -> (Ar
         return i.reshape(xq.shape), pi.reshape(xq.shape)
 
 
-# used in hank2
+# used in hank2, y var changes dimensions + vectorize and export does not work
 # x_i: (a, ), x_pi: (a, ), y: (a, )
 @partial(jnp.vectorize, signature='(nq),(nq),(n)->(nq)')
 def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array:
