@@ -7,7 +7,8 @@ class EconPizzaConfig(dict):
     def __init__(self, *args, **kwargs):
         super(EconPizzaConfig, self).__init__(*args, **kwargs)
         self._enable_persistent_cache = False
-        self._enable_jax_persistent_cache = False
+        self._cache_folder_pizza = None
+        self._cache_folder_jax = None
 
     @property
     def enable_persistent_cache(self):
@@ -18,12 +19,20 @@ class EconPizzaConfig(dict):
         self._enable_persistent_cache = value
 
     @property
-    def enable_jax_persistent_cache(self):
-        return self._enable_jax_persistent_cache
-
-    @enable_jax_persistent_cache.setter
-    def enable_jax_persistent_cache(self, value):
-        self._enable_jax_persistent_cache = value
+    def cache_folder_jax(self):
+        return self._cache_folder_jax
+    
+    @cache_folder_jax.setter
+    def cache_folder_jax(self, value):
+        self._cache_folder_jax = value
+    
+    @property
+    def cache_folder_pizza(self):
+        return self._cache_folder_pizza
+    
+    @cache_folder_pizza.setter
+    def cache_folder_pizza(self, value):
+        self._cache_folder_pizza = value
 
     def update(self, key, value):
         if hasattr(self, key):
@@ -55,11 +64,13 @@ def enable_persistent_cache():
     By default, they are created in callee working directory.
     """
     if config.enable_persistent_cache == True:
-        _create_cache_dir("econpizza_cache")
-        
-        folder_name = _create_cache_dir("jax_cache")
+        folder_path_pizza = _create_cache_dir("econpizza_cache")
+        folder_path_jax = _create_cache_dir("jax_cache")
 
-        jax.config.update("jax_compilation_cache_dir", folder_name)
+        jax.config.update("jax_compilation_cache_dir", folder_path_jax)
         jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
         jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
+
+        config.cache_folder_jax = folder_path_jax
+        config.cache_folder_pizza = folder_path_pizza
 
