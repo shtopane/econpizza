@@ -5,7 +5,9 @@ import time
 import jax
 import jax.numpy as jnp
 from grgrjax import newton_jax_jit, val_and_jacfwd
+from ..config import enable_persistent_cache
 
+enable_persistent_cache()
 
 msgs = (
     ", root finding did not converge",
