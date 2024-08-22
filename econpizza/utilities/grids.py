@@ -1,11 +1,18 @@
 
 """Grids and Markov chains"""
+from functools import partial
 
 import jax
 import jax.numpy as jnp
+
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
 from .dists import stationary_distribution
 
+# Issue with scalars in symbolic shapes, maybe skip or work more on it later
+# log_grid_shape = {"amax": ((), jnp.int64), "n": ((), jnp.int64), "amin": ((), jnp.float64)}
 # scalars float(passed as int), int and float
+# @cacheable_function_with_export("log_grid", log_grid_shape, skip_jitting=True)
+# @partial(jax.jit, static_argnums=(1,))
 def log_grid(amax, n, amin=0):
     """Create grid between amin and amax that is equidistant in logs."""
     pivot = jnp.abs(amin) + 0.25
@@ -24,6 +31,7 @@ def variance(x, pi):
     return jnp.sum(pi * (x - jnp.sum(pi * x)) ** 2)
 
 # float, float, int
+# @partial(jax.jit, static_argnums=(2,))
 def markov_rouwenhorst(rho, sigma, N):
     """Rouwenhorst method analog to markov_tauchen"""
 
@@ -99,6 +107,9 @@ def create_grids(distributions, context, verbose):
                     print(
                         f"    ...adding exogenous Rouwenhorst-grid for '{grid_name}' with objects '{g['grid_name']}', '{g['transition_name']}' and '{grid_name}_stationary'.")
             if g['type'] == 'endogenous_log':
+                print(type(g['min']))
+                print(type(g['max']))
+                print(type(g['n']))
                 grid_strings += f"{g['grid_name']} = grids.log_grid(amin={g['min']}, amax={g['max']}, n={g['n']})",
                 if verbose:
                     print(
