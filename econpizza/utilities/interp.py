@@ -8,11 +8,14 @@ from jax._src.typing import Array
 
 import sys
 
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
+
 interpolate_numpy = jnp.vectorize(jnp.interp, signature='(nq),(n),(n)->(nq)')
 
 # Not possible, since searchsorted does not support symbolic shapes
 # JITTING speeds things up though?
 @partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
+# @cacheable_function_with_export("interpolate", {"x": ("a, ", jnp.float64), "xq": ("a, ", jnp.float64), "y": ("a, ", jnp.int64)})
 def interpolate(x: Array, xq: Array, y: Array) -> Array: # x (a, ), xq (b, ), y (a, )
     """Efficient linear interpolation exploiting monotonicity.
 
@@ -49,7 +52,8 @@ def interpolate_fast(xp: Array, x: Array, fp: Array) -> Array:
     """
     return jax.vmap(jnp.interp)(jax.lax.broadcast(x, (xp.shape[0],)), xp, fp)
 
-
+# Same issue as interpolate, TypeError: '_DimExpr' object cannot be interpreted as an integer
+# @cacheable_function_with_export("interpolate_coord_robust_vector", {"x": ("a, ", jnp.float64), "xq": ("a, ", jnp.float64)})
 def interpolate_coord_robust_vector(x: Array, xq: Array) -> (Array, Array): # x(a,), xq(b, )
     """Get representation xqi, xqpi of xq interpolated against x:
     xq = xqpi * x[xqi] + (1-xqpi) * x[xqi+1]
@@ -67,7 +71,7 @@ def interpolate_coord_robust_vector(x: Array, xq: Array) -> (Array, Array): # x(
 
     nx = x.shape[0]
 
-    xqi = jnp.minimum(jnp.searchsorted(x, xq, side='right') - 1, nx-2)
+    xqi = jnp.minimum(jnp.searchsorted(x, xq, side='right') - 1, nx-2).astype(jnp.int64)
     xqpi = (x[xqi+1] - xq) / (x[xqi+1] - x[xqi])
 
     return xqi, xqpi
@@ -77,6 +81,8 @@ interpolate_coord = jnp.vectorize(
     interpolate_coord_robust_vector, signature='(nq),(nq)->(nq),(nq)')
 
 # xq dimensions change between models - not appropriate for exporting?
+# Issue is this function is called BEFORE the model is loaded(done with parsing), so at this point we won't know
+# whether this function needs to be reexported for the new model. xq for HANK is (a, b), for HANK2 is (a, b, c)
 def interpolate_coord_robust(x: Array, xq: Array, check_increasing=False) -> (Array, Array):
     """Linear interpolation exploiting monotonicity only in data x, not in query points xq.
     Simple binary search, less efficient but more robust.
@@ -111,7 +117,7 @@ def interpolate_coord_robust(x: Array, xq: Array, check_increasing=False) -> (Ar
 
 
 # used in hank2, y var changes dimensions + vectorize and export does not work
-# x_i: (a, ), x_pi: (a, ), y: (a, )
+# x_i: (a, ) int32/64, x_pi: (a, ) float64, y: (a, ) float64
 @partial(jnp.vectorize, signature='(nq),(nq),(n)->(nq)')
 def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array:
     """Use representation xqi, xqpi to get yq at xq:
