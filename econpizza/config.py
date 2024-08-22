@@ -73,6 +73,3 @@ class EconPizzaConfig(dict):
 
 
 config = EconPizzaConfig()
-
-
-
