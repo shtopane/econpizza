@@ -137,6 +137,8 @@ def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array:
 
 # used in hank 2
 # lhs: (a, ), rhs: (a, a)
+# Not able to transform using vmap, applying the decorator directly throws  TypeError: can't apply forward-mode autodiff (jvp) to a custom_vjp function.
+# @cacheable_function_with_export("lhs_equals_rhs_interpolate", {"lhs": ("batch, n1, n2", jnp.float64), "rhs": ("n2, n2", jnp.float64)})
 @partial(jnp.vectorize, signature='(ni),(ni,nj)->(nj),(nj)')
 def lhs_equals_rhs_interpolate(lhs: Array, rhs: Array) -> (Array, Array): 
     """
