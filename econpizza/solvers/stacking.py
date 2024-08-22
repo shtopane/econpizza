@@ -10,9 +10,6 @@ from ..parser.build_generic_functions import build_aggr_het_agent_funcs, get_sts
 from ..parser.checks import check_if_compiled
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
 from ..utilities.newton import newton_for_jvp, newton_for_tridiag_jac, newton_jax_jit_wrapper
-from ..config import enable_persistent_cache
-
-enable_persistent_cache()
 
 def write_cache(model, horizon, pars, stst):
     model['cache']['horizon'] = horizon

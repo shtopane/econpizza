@@ -2,9 +2,6 @@
 
 import jax
 import jax.numpy as jnp
-from ..config import enable_persistent_cache
-
-enable_persistent_cache()
 
 def solve_linear_state_space(
     self,

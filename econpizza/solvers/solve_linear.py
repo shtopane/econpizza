@@ -8,9 +8,6 @@ from ..utilities.jacobian import get_stst_jacobian
 from ..parser import d2jnp
 from ..parser.checks import check_if_compiled
 from ..parser.build_generic_functions import build_aggr_het_agent_funcs, get_stst_derivatives
-from ..config import enable_persistent_cache
-
-enable_persistent_cache()
 
 def find_path_linear(self, shock=None, init_state=None, pars=None, horizon=200, verbose=True):
     """Find the linear expected trajectory given an initial state.
