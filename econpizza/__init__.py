@@ -6,8 +6,6 @@ import jax
 import jax.numpy as jnp
 from copy import deepcopy
 
-from econpizza.utilities.export.interp import export_apply_coord
-
 from . import examples
 from .__version__ import __version__
 from .solvers.steady_state import solve_stst
@@ -23,7 +21,6 @@ from .config import config
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
 
 jax.config.update("jax_enable_x64", True)
-
 enable_persistent_cache()
 
 # create local alias
