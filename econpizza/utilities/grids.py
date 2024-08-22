@@ -107,9 +107,6 @@ def create_grids(distributions, context, verbose):
                     print(
                         f"    ...adding exogenous Rouwenhorst-grid for '{grid_name}' with objects '{g['grid_name']}', '{g['transition_name']}' and '{grid_name}_stationary'.")
             if g['type'] == 'endogenous_log':
-                print(type(g['min']))
-                print(type(g['max']))
-                print(type(g['n']))
                 grid_strings += f"{g['grid_name']} = grids.log_grid(amin={g['min']}, amax={g['max']}, n={g['n']})",
                 if verbose:
                     print(

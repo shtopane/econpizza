@@ -71,7 +71,7 @@ def interpolate_coord_robust_vector(x: Array, xq: Array) -> (Array, Array): # x(
 
     nx = x.shape[0]
 
-    xqi = jnp.minimum(jnp.searchsorted(x, xq, side='right') - 1, nx-2).astype(jnp.int64)
+    xqi = jnp.minimum(jnp.searchsorted(x, xq, side='right') - 1, nx-2)
     xqpi = (x[xqi+1] - xq) / (x[xqi+1] - x[xqi])
 
     return xqi, xqpi

@@ -16,7 +16,6 @@ from ..utilities import grids, dists, interp
 # transition (4, 4) (HANK) (3, 3) (HANK2)
 # indices <- python list [0] (HANK) [1, 0] (HANK2)
 def func_forw_generic(distributions, decisions_outputs, grids, transition, indices):
-    # print(f"distributions: {distributions.shape}, decisions_outputs: {decisions_outputs.shape}, grids: {grids.shape}, transition: {transition.shape}, indices: {indices.shape}")
     # prototype for one distribution
     # should be a for-loop for more than one distribution
     (dist, ) = distributions
