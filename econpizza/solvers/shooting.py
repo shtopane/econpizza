@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 from grgrjax import newton_jax_jit, val_and_jacfwd
 
+
 msgs = (
     ", root finding did not converge",
     ", ftol not reached in root finding",

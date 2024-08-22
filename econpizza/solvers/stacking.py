@@ -11,6 +11,7 @@ from ..parser.checks import check_if_compiled
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
 from ..utilities.newton import newton_for_jvp, newton_for_tridiag_jac, newton_jax_jit_wrapper
 
+
 def write_cache(model, horizon, pars, stst):
     model['cache']['horizon'] = horizon
     model['cache']['pars'] = pars

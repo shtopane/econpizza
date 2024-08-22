@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 
+
 def solve_linear_state_space(
     self,
     raise_error=True,

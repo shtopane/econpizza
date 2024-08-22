@@ -8,6 +8,7 @@ from grgrjax import newton_jax, val_and_jacfwd, amax
 from ..parser import compile_stst_inputs, d2jnp
 from ..parser.build_generic_functions import get_func_stst
 
+
 def solver(jval, fval):
     """A default solver to solve indetermined problems.
     """
