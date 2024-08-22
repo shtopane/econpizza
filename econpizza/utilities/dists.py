@@ -4,7 +4,12 @@
 import jax
 import jax.numpy as jnp
 from jax._src.typing import Array
- # Pi[3,3], X[3, 10, 20]
+
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
+# Getting errors! TypeError: can't apply forward-mode autodiff (jvp) to a custom_vjp function.
+# Because the function is used in _body_func_2d
+# Pi[3,3], X[3, 10, 20]
+# @cacheable_function_with_export("expect_transition", {"Pi": ("a, a", jnp.float64), "X": ("a, b, c", jnp.float64)})
 def expect_transition(Pi: Array, X: Array) -> Array:
     """If Pi is a matrix, multiply Pi times the ith dimension of X and return"""
     shape = X.shape
@@ -16,6 +21,10 @@ def expect_transition(Pi: Array, X: Array) -> Array:
     return X
 
  # D[4, 50], x_i[4, 50], x_pi[4, 50]
+
+# D (a, b) float64, x_i (a, b) int64, x_pi (a, b) float64
+# Again, TypeError: can't apply forward-mode autodiff (jvp) to a custom_vjp function.
+# @cacheable_function_with_export("forward_policy_1d", {"D": ("a, b", jnp.float64), "x_i": ("a, b", jnp.int64), "x_pi": ("a, b", jnp.float64)}, vjp_order=3)
 def forward_policy_1d(D: Array, x_i: Array, x_pi: Array) -> Array:
     nZ, _ = D.shape
     Dnew = jnp.zeros_like(D)
@@ -27,7 +36,7 @@ def forward_policy_1d(D: Array, x_i: Array, x_pi: Array) -> Array:
 
     return Dnew
 
-
+# Later
 def cond_func(carry):
     (dist, cnt, dist_old), (tol, maxit), _ = carry
     cond0 = jnp.abs(dist-dist_old).max() > tol
@@ -42,6 +51,14 @@ def _body_func_1d(carry):
     return (dist_new, cnt + 1, dist), cond_vars, exo_endo
 
 # endog_inds[4, 50], endog_probs[4, 50], exog_probs: [4,4]
+# endog_inds is used in slicing, and a polymorhic shape cannot do it.
+# @cacheable_function_with_export("stationary_distribution_forward_policy_1d", {
+#     "endog_inds": ("a, b", jnp.float64),
+#     "endog_probs": ("a, b", jnp.float64),
+#     "exog_probs": ("a, a", jnp.float64),
+#     "tol": ("", jnp.float64),
+#     "maxit": ("", jnp.int64)
+# })
 def stationary_distribution_forward_policy_1d(endog_inds: Array, endog_probs: Array, exog_probs: Array, tol=1e-10, maxit=1000) -> (Array, int):
     dist = jnp.ones_like(endog_inds, dtype=jnp.float64)
     dist /= dist.sum()
@@ -87,7 +104,10 @@ def stationary_distribution_forward_policy_2d(endog_inds0: Array, endog_inds1: A
                                               _body_func_2d, ((dist, 0, dist+1), (tol, maxit), exo_endo))
 
     return dist, cnt
- # T[4,4](hank1), T[3,3](hank2) -> T[a, a]
+
+# T[4,4](hank1), T[3,3](hank2) -> T[a, a]
+# YES!
+@cacheable_function_with_export("stationary_distribution", {"T": ("a, a", jnp.float64)})
 def stationary_distribution(T):
     """Find invariant distribution of a Markov chain by unit eigenvector.
     NOTE: jax has no autodiff support for eig. (there is a version with custom_jvp in grgrwip)
