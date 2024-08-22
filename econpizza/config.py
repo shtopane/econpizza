@@ -7,8 +7,8 @@ class EconPizzaConfig(dict):
     def __init__(self, *args, **kwargs):
         super(EconPizzaConfig, self).__init__(*args, **kwargs)
         self._enable_persistent_cache = False
-        self._econpizza_cache_folder = '__econpizza_cache__'
-        self._jax_cache_folder = '__jax_cache__'
+        self._econpizza_cache_folder = "__econpizza_cache__"
+        self._jax_cache_folder = "__jax_cache__"
 
     @property
     def enable_persistent_cache(self):
@@ -55,9 +55,9 @@ class EconPizzaConfig(dict):
             folder_path_pizza = self._create_cache_dir(self.econpizza_cache_folder)
             folder_path_jax = self._create_cache_dir(self.jax_cache_folder)
 
-            jax.config.update('jax_compilation_cache_dir', folder_path_jax)
-            jax.config.update('jax_persistent_cache_min_entry_size_bytes', -1)
-            jax.config.update('jax_persistent_cache_min_compile_time_secs', 0)
+            jax.config.update("jax_compilation_cache_dir", folder_path_jax)
+            jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
+            jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
 
             self.jax_cache_folder = folder_path_jax
             self.econpizza_cache_folder = folder_path_pizza
