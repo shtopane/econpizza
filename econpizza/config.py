@@ -64,8 +64,8 @@ def enable_persistent_cache():
     By default, they are created in callee working directory.
     """
     if config.enable_persistent_cache == True:
-        folder_path_pizza = _create_cache_dir("econpizza_cache")
-        folder_path_jax = _create_cache_dir("jax_cache")
+        folder_path_pizza = _create_cache_dir("__econpizza_cache__")
+        folder_path_jax = _create_cache_dir("__jax_cache__")
 
         jax.config.update("jax_compilation_cache_dir", folder_path_jax)
         jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
