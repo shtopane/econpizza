@@ -7,8 +7,8 @@ class EconPizzaConfig(dict):
     def __init__(self, *args, **kwargs):
         super(EconPizzaConfig, self).__init__(*args, **kwargs)
         self._enable_persistent_cache = False
-        self._cache_folder_pizza = None
-        self._cache_folder_jax = None
+        self._econpizza_cache_folder = "__econpizza_cache__"
+        self._jax_cache_folder = "__jax_cache__"
 
     @property
     def enable_persistent_cache(self):
@@ -19,26 +19,48 @@ class EconPizzaConfig(dict):
         self._enable_persistent_cache = value
 
     @property
-    def cache_folder_jax(self):
-        return self._cache_folder_jax
+    def jax_cache_folder(self):
+        return self._jax_cache_folder
     
-    @cache_folder_jax.setter
-    def cache_folder_jax(self, value):
-        self._cache_folder_jax = value
+    @jax_cache_folder.setter
+    def jax_cache_folder(self, value):
+        self._jax_cache_folder = value
     
     @property
-    def cache_folder_pizza(self):
-        return self._cache_folder_pizza
+    def econpizza_cache_folder(self):
+        return self._econpizza_cache_folder
     
-    @cache_folder_pizza.setter
-    def cache_folder_pizza(self, value):
-        self._cache_folder_pizza = value
+    @econpizza_cache_folder.setter
+    def econpizza_cache_folder(self, value):
+        self._econpizza_cache_folder = value
 
     def update(self, key, value):
         if hasattr(self, key):
             setattr(self, key, value)
         else:
             raise AttributeError(f"'EconPizzaConfig' object has no attribute '{key}'")
+    
+    def _create_cache_dir(self, folder_name: str):
+        cwd = os.getcwd()
+        folder_path = os.path.join(cwd, folder_name)
+        os.makedirs(folder_path, exist_ok=True)
+
+        return folder_path
+
+    def setup_persistent_cache(self):
+        """Create folders for JAX and EconPizza cache.
+        By default, they are created in callee working directory.
+        """
+        if self.enable_persistent_cache == True:
+            folder_path_pizza = self._create_cache_dir(self.econpizza_cache_folder)
+            folder_path_jax = self._create_cache_dir(self.jax_cache_folder)
+
+            jax.config.update("jax_compilation_cache_dir", folder_path_jax)
+            jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
+            jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
+
+            self.jax_cache_folder = folder_path_jax
+            self.econpizza_cache_folder = folder_path_pizza
 
     def __repr__(self):
         properties = {
@@ -51,26 +73,3 @@ class EconPizzaConfig(dict):
 
 
 config = EconPizzaConfig()
-
-def _create_cache_dir(folder_name: str):
-    cwd = os.getcwd()
-    folder_path = os.path.join(cwd, folder_name)
-    os.makedirs(folder_path, exist_ok=True)
-
-    return folder_path
-
-def enable_persistent_cache():
-    """Create folders for JAX and EconPizza cache.
-    By default, they are created in callee working directory.
-    """
-    if config.enable_persistent_cache == True:
-        folder_path_pizza = _create_cache_dir("econpizza_cache")
-        folder_path_jax = _create_cache_dir("jax_cache")
-
-        jax.config.update("jax_compilation_cache_dir", folder_path_jax)
-        jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
-        jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
-
-        config.cache_folder_jax = folder_path_jax
-        config.cache_folder_pizza = folder_path_pizza
-
