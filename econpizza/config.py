@@ -7,8 +7,8 @@ class EconPizzaConfig(dict):
     def __init__(self, *args, **kwargs):
         super(EconPizzaConfig, self).__init__(*args, **kwargs)
         self._enable_persistent_cache = False
-        self._cache_folder_pizza = None
-        self._cache_folder_jax = None
+        self._econpizza_cache_folder = '__econpizza_cache__'
+        self._jax_cache_folder = '__jax_cache__'
 
     @property
     def enable_persistent_cache(self):
@@ -19,20 +19,20 @@ class EconPizzaConfig(dict):
         self._enable_persistent_cache = value
 
     @property
-    def cache_folder_jax(self):
-        return self._cache_folder_jax
+    def jax_cache_folder(self):
+        return self._jax_cache_folder
     
-    @cache_folder_jax.setter
-    def cache_folder_jax(self, value):
-        self._cache_folder_jax = value
+    @jax_cache_folder.setter
+    def jax_cache_folder(self, value):
+        self._jax_cache_folder = value
     
     @property
-    def cache_folder_pizza(self):
-        return self._cache_folder_pizza
+    def econpizza_cache_folder(self):
+        return self._econpizza_cache_folder
     
-    @cache_folder_pizza.setter
-    def cache_folder_pizza(self, value):
-        self._cache_folder_pizza = value
+    @econpizza_cache_folder.setter
+    def econpizza_cache_folder(self, value):
+        self._econpizza_cache_folder = value
 
     def update(self, key, value):
         if hasattr(self, key):
@@ -52,15 +52,15 @@ class EconPizzaConfig(dict):
         By default, they are created in callee working directory.
         """
         if self.enable_persistent_cache == True:
-            folder_path_pizza = self._create_cache_dir('__econpizza_cache__')
-            folder_path_jax = self._create_cache_dir('__jax_cache__')
+            folder_path_pizza = self._create_cache_dir(self.econpizza_cache_folder)
+            folder_path_jax = self._create_cache_dir(self.jax_cache_folder)
 
             jax.config.update('jax_compilation_cache_dir', folder_path_jax)
             jax.config.update('jax_persistent_cache_min_entry_size_bytes', -1)
             jax.config.update('jax_persistent_cache_min_compile_time_secs', 0)
 
-            self.cache_folder_jax = folder_path_jax
-            self.cache_folder_pizza = folder_path_pizza
+            self.jax_cache_folder = folder_path_jax
+            self.econpizza_cache_folder = folder_path_pizza
 
     def __repr__(self):
         properties = {
