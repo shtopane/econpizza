@@ -26,6 +26,7 @@ config.setup_persistent_cache()
 # create local alias
 copy = deepcopy
 
+
 class PizzaModel(dict):
     """Base class for models. Contains all necessary methods and informations.
     """
