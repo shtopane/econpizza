@@ -23,10 +23,8 @@ def export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting)
     
     function_to_export = func if skip_jitting else jax.jit(func)
     exported_func: export.Exported = export.export(function_to_export)(*args)
-    # Serialize the exported function
-    serialized_path = os.path.join(ep.config.cache_folder_pizza, f"{func_name}.bin")
-    # os.makedirs(serialized_path, exist_ok=True)
-   
+
+    serialized_path = os.path.join(ep.config.econpizza_cache_folder, f"{func_name}.bin")
     serialized: bytearray = exported_func.serialize(vjp_order=vjp_order)
 
     # Save the serialized object to the serialized path
@@ -48,7 +46,7 @@ def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_
             if ep.config.enable_persistent_cache:
 
                 serialized_path = os.path.join(
-                    ep.config.cache_folder_pizza, f"{func_name}.bin"
+                    ep.config.econpizza_cache_folder, f"{func_name}.bin"
                 )
 
                 if os.path.exists(serialized_path):
