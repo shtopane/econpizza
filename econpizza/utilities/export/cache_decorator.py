@@ -5,7 +5,7 @@ from jax import export
 import jax
 import sys
 
-def export_and_serialize(func, func_name, shape_struct, vjp_order):
+def export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting):
     """Export and serialize a function with given symbolic shapes."""
     scope = export.SymbolicScope()
 
@@ -20,8 +20,9 @@ def export_and_serialize(func, func_name, shape_struct, vjp_order):
     except ValueError as e:
         print(f"Error in shape or dtype construction: {e}")
         raise
-
-    exported_func: export.Exported = export.export(jax.jit(func))(*args)
+    
+    function_to_export = func if skip_jitting else jax.jit(func)
+    exported_func: export.Exported = export.export(function_to_export)(*args)
     # Serialize the exported function
     serialized_path = os.path.join(ep.config.cache_folder_pizza, f"{func_name}.bin")
     # os.makedirs(serialized_path, exist_ok=True)
@@ -35,7 +36,7 @@ def export_and_serialize(func, func_name, shape_struct, vjp_order):
     return exported_func.call
 
 
-def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0):
+def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_jitting = False):
     """Decorator to replace function with exported and cached version if caching is enabled.
     Usage:
       @cacheable_function_with_export("f", {"x": ("a,", jnp.float64)}
@@ -62,7 +63,7 @@ def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0):
                     return cached_func.call(*args)
                 else:
                     # Export, serialize, and cache the function
-                    cached_func = export_and_serialize(func, func_name, shape_struct, vjp_order)
+                    cached_func = export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting)
                     return cached_func(*args)
             else:
                 # Just use the original function
