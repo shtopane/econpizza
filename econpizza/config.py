@@ -39,6 +39,28 @@ class EconPizzaConfig(dict):
             setattr(self, key, value)
         else:
             raise AttributeError(f"'EconPizzaConfig' object has no attribute '{key}'")
+    
+    def _create_cache_dir(self, folder_name: str):
+        cwd = os.getcwd()
+        folder_path = os.path.join(cwd, folder_name)
+        os.makedirs(folder_path, exist_ok=True)
+
+        return folder_path
+
+    def setup_persistent_cache(self):
+        """Create folders for JAX and EconPizza cache.
+        By default, they are created in callee working directory.
+        """
+        if self.enable_persistent_cache == True:
+            folder_path_pizza = self._create_cache_dir('__econpizza_cache__')
+            folder_path_jax = self._create_cache_dir('__jax_cache__')
+
+            jax.config.update('jax_compilation_cache_dir', folder_path_jax)
+            jax.config.update('jax_persistent_cache_min_entry_size_bytes', -1)
+            jax.config.update('jax_persistent_cache_min_compile_time_secs', 0)
+
+            self.cache_folder_jax = folder_path_jax
+            self.cache_folder_pizza = folder_path_pizza
 
     def __repr__(self):
         properties = {
@@ -52,25 +74,5 @@ class EconPizzaConfig(dict):
 
 config = EconPizzaConfig()
 
-def _create_cache_dir(folder_name: str):
-    cwd = os.getcwd()
-    folder_path = os.path.join(cwd, folder_name)
-    os.makedirs(folder_path, exist_ok=True)
 
-    return folder_path
-
-def enable_persistent_cache():
-    """Create folders for JAX and EconPizza cache.
-    By default, they are created in callee working directory.
-    """
-    if config.enable_persistent_cache == True:
-        folder_path_pizza = _create_cache_dir("__econpizza_cache__")
-        folder_path_jax = _create_cache_dir("__jax_cache__")
-
-        jax.config.update("jax_compilation_cache_dir", folder_path_jax)
-        jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
-        jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
-
-        config.cache_folder_jax = folder_path_jax
-        config.cache_folder_pizza = folder_path_pizza
 

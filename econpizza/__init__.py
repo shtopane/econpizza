@@ -14,7 +14,6 @@ from .solvers.solve_linear import find_path_linear
 from .solvers.solve_linear_state_space import solve_linear_state_space, find_path_linear_state_space
 from .solvers.shooting import find_path_shooting
 from .parser import parse, load
-from .config import enable_persistent_cache
 from .config import config
 
 # set number of cores for XLA
@@ -22,7 +21,7 @@ os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count
 
 jax.config.update("jax_enable_x64", True)
 
-enable_persistent_cache()
+config.setup_persistent_cache()
 
 # create local alias
 copy = deepcopy
