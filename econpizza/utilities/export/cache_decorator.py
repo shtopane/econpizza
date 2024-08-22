@@ -1,10 +1,11 @@
 """Decorator to handle function serialization"""
-from config import config
+import econpizza as ep
 import os
 from jax import export
 import jax
+import sys
 
-def export_and_serialize(func, func_name, shape_struct):
+def export_and_serialize(func, func_name, shape_struct, vjp_order):
     """Export and serialize a function with given symbolic shapes."""
     scope = export.SymbolicScope()
 
@@ -21,13 +22,11 @@ def export_and_serialize(func, func_name, shape_struct):
         raise
 
     exported_func: export.Exported = export.export(jax.jit(func))(*args)
-
     # Serialize the exported function
-    # TODO: change path
-    serialized_path = os.path.join("econpizza_cache", f"{func_name}.bin")
+    serialized_path = os.path.join(ep.config.cache_folder_pizza, f"{func_name}.bin")
     # os.makedirs(serialized_path, exist_ok=True)
-
-    serialized: bytearray = exported_func.serialize()
+   
+    serialized: bytearray = exported_func.serialize(vjp_order=vjp_order)
 
     # Save the serialized object to the serialized path
     with open(serialized_path, "wb") as file:
@@ -36,7 +35,7 @@ def export_and_serialize(func, func_name, shape_struct):
     return exported_func.call
 
 
-def cacheable_function_with_export(func_name, shape_struct):
+def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0):
     """Decorator to replace function with exported and cached version if caching is enabled.
     Usage:
       @cacheable_function_with_export("f", {"x": ("a,", jnp.float64)}
@@ -45,10 +44,10 @@ def cacheable_function_with_export(func_name, shape_struct):
     def decorator(func):
         def wrapper(*args, **kwargs):
 
-            if config.enable_persistent_cache:
-                # TODO: change path
+            if ep.config.enable_persistent_cache:
+
                 serialized_path = os.path.join(
-                    "econpizza_cache", f"{func_name}.bin"
+                    ep.config.cache_folder_pizza, f"{func_name}.bin"
                 )
 
                 if os.path.exists(serialized_path):
@@ -63,7 +62,7 @@ def cacheable_function_with_export(func_name, shape_struct):
                     return cached_func.call(*args)
                 else:
                     # Export, serialize, and cache the function
-                    cached_func = export_and_serialize(func, func_name, shape_struct)
+                    cached_func = export_and_serialize(func, func_name, shape_struct, vjp_order)
                     return cached_func(*args)
             else:
                 # Just use the original function
