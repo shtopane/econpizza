@@ -59,8 +59,14 @@ def markov_rouwenhorst(rho, sigma, N):
     y = rouwenhorst_grid_from_stationary(sigma, pi)
     return y, pi, Pi
 
+
+# Nope
+# num = core.concrete_or_error(operator.index, num, "'num' argument of jnp.linspace")
+# TypeError: '_DimExpr' object cannot be interpreted as an integer
 # sigma: float
 # hank: stationary_distribution(4,), hank2: stationary_distribution(3,) -> stationary_distribution(a,)
+# @cacheable_function_with_export("rouwenhorst_grid_from_stationary", {"sigma": ("", jnp.float64), "stationary_distribution": ("a, ", jnp.float64)})
+# @partial(jax.jit, static_argnums=(0,))
 def rouwenhorst_grid_from_stationary(sigma, stationary_distribution):
     s = jnp.linspace(-1, 1, len(stationary_distribution))
     s *= (sigma / jnp.sqrt(variance(s, stationary_distribution)))
