@@ -4,10 +4,11 @@ from unittest.mock import patch
 import shutil
 import os
 import sys
-
+# autopep8: off
 sys.path.insert(0, os.path.abspath("."))
 import econpizza as ep
 from econpizza.config import EconPizzaConfig
+# autopep8: on
 
 @pytest.fixture(scope="function", autouse=True)
 def ep_config_reset():
@@ -19,13 +20,11 @@ def os_getcwd_create():
 
       if not os.path.exists(folder_path):
           os.makedirs(folder_path)
-          print(f"Created folder: {folder_path}")
 
       with patch("os.getcwd", return_value="./config_working_dir"):
         yield
       
       if os.path.exists(folder_path):
-        print("Deleting folder:", folder_path)
         shutil.rmtree(folder_path)
 
 def test_config_default_values():
@@ -69,20 +68,25 @@ def test_config_jax_folder_set_from_outside():
       ep.config.enable_persistent_cache = True
       mock_jax_update.assert_any_call("jax_compilation_cache_dir", "jax_from_outside")
 
-
 def test_econpizza_cache_folder_not_created_second_time():
-    ep.config.enable_persistent_cache = True
-    assert os.path.exists(ep.config.econpizza_cache_folder)
+    with patch("jax.config.update") as mock_jax_update:
+    
+      ep.config.enable_persistent_cache = True
+      assert os.path.exists(ep.config.econpizza_cache_folder)
 
-    with patch("os.makedirs") as mock_makedirs:
-        ep.config.enable_persistent_cache = True
-        assert mock_makedirs.call_count == 0
+      with patch("os.makedirs") as mock_makedirs:
+          ep.config.enable_persistent_cache = True
+          # only jax config is updated
+          assert mock_makedirs.call_count == 1
 
-def test_config_enable_persistent_cache_called_after_load():
-    mod = ep.load(ep.examples.dsge)
-    ep.config.enable_persistent_cache = True
-    assert os.path.exists(ep.config.econpizza_cache_folder)
-    assert os.path.exists(ep.config.jax_cache_folder)
+def test_config_enable_persistent_cache_called_after_model_load():
+    with patch("jax.config.update") as mock_jax_update:
+    
+      _ = ep.load(ep.examples.dsge)
+
+      assert os.path.exists(ep.config.econpizza_cache_folder) == False
+      ep.config.enable_persistent_cache = True
+      assert os.path.exists(ep.config.econpizza_cache_folder) == True
 
 
         
