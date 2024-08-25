@@ -17,6 +17,7 @@ class EconPizzaConfig(dict):
     @enable_persistent_cache.setter
     def enable_persistent_cache(self, value):
         self._enable_persistent_cache = value
+        self.setup_persistent_cache()
 
     @property
     def jax_cache_folder(self):
