@@ -21,8 +21,6 @@ os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count
 
 jax.config.update("jax_enable_x64", True)
 
-config.setup_persistent_cache()
-
 # create local alias
 copy = deepcopy
 
