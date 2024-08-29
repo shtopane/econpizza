@@ -79,7 +79,7 @@ def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_
 
                 if serialized:
                     cached_func = export.deserialize(serialized)
-                    return cached_func.call(*args)
+                    return cached_func.call(*args, **kwargs)
                 else:
                     # Export, serialize, and cache the function
                     cached_func = export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting)
