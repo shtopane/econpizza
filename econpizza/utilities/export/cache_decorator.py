@@ -62,7 +62,7 @@ def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_
                 else:
                     # Export, serialize, and cache the function
                     cached_func = export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting)
-                    return cached_func(*args)
+                    return cached_func(*args, **kwargs)
             else:
                 # Just use the original function
                 return func(*args, **kwargs)
