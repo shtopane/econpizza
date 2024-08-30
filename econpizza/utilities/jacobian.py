@@ -6,7 +6,14 @@ from jax._src.api import partial
 from jax._src.typing import Array
 from grgrjax import jax_print
 
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
+
+
 # i_and_j(), carry[0](a, b, a, b)[ex: (199, 28, 199, 28)], carry[1]()
+@cacheable_function_with_export(
+    "jacobian_accumulate",
+    {"i_and_j": ("", jnp.int64), "carry": (("c,d,c,d", jnp.float64), ("", jnp.int64))},
+)
 def accumulate(i_and_j: Array, carry: (Array, Array)) -> (Array, int):
     # accumulate effects over different horizons
     jac, horizon = carry
