@@ -5,7 +5,7 @@ from jax import export
 import jax
 import sys
 
-def export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting):
+def export_and_serialize(func, func_name, shape_struct, vjp_order=0, skip_jitting=False, export_kwargs=False):
     """
     Export and serialize a function with given symbolic shapes.
 
@@ -15,27 +15,26 @@ def export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting)
         shape_struct (dict): A dictionary defining the shape and type of the function's inputs.
         vjp_order (int): The order of the vector-Jacobian product.
         skip_jitting (bool): Whether to skip JIT compilation.
-
+        export_kwargs (bool): Whether to export the function using keyword arguments instead of positional(default)
     Returns:
         function: The exported and serialized function ready to be called.
     """
     scope = export.SymbolicScope()
-
+    function_to_export = func if skip_jitting else jax.jit(func)
     # Verify that each shape and dtype are compatible
     try:
-        args = [
-            jax.ShapeDtypeStruct(
-                export.symbolic_shape(shape, scope=scope), dtype=dtype
-            )
-            for shape, dtype in shape_struct.values()
-        ]
+        poly_args = map_shape_struct_dict_to_jax_shape(shape_struct, scope)
     except ValueError as e:
         print(f"Error in shape or dtype construction: {e}")
         raise
-    
-    function_to_export = func if skip_jitting else jax.jit(func)
-    exported_func: export.Exported = export.export(function_to_export)(*args)
 
+    if export_kwargs == True:
+        func_kwargs_names = list(shape_struct.keys())
+        poly_kwargs = {key: value for key, value in zip(func_kwargs_names, poly_args)}
+        exported_func: export.Exported = export.export(function_to_export)(**poly_kwargs)
+    else:
+        exported_func: export.Exported = export.export(function_to_export)(*poly_args)
+    
     serialized_path = os.path.join(ep.config.econpizza_cache_folder, f"{func_name}")
     serialized: bytearray = exported_func.serialize(vjp_order=vjp_order)
 
@@ -45,7 +44,7 @@ def export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting)
     return exported_func.call
 
 
-def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_jitting = False):
+def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_jitting = False, export_kwargs=False):
     """
     Decorator to replace function with exported and cached version if caching is enabled.
 
@@ -54,6 +53,7 @@ def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_
         shape_struct (dict): A dictionary defining the shape and type of the function's inputs.
         vjp_order (int, optional): The order of the vector-Jacobian product. Defaults to 0.
         skip_jitting (bool, optional): Whether to skip JIT compilation. Defaults to False. 
+        export_kwargs (bool): Whether to export the function using keyword arguments instead of positional(default)
 
     Returns:
         function: The decorated function which uses the cached version if available, otherwise the original function.
@@ -65,7 +65,6 @@ def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_
     """
     def decorator(func):
         def wrapper(*args, **kwargs):
-
             if ep.config.enable_persistent_cache == True:
                 serialized_path = os.path.join(
                     ep.config.econpizza_cache_folder, f"{func_name}"
@@ -82,7 +81,7 @@ def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_
                     return cached_func.call(*args, **kwargs)
                 else:
                     # Export, serialize, and cache the function
-                    cached_func = export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting)
+                    cached_func = export_and_serialize(func, func_name, shape_struct, vjp_order, skip_jitting, export_kwargs)
                     return cached_func(*args, **kwargs)
             else:
                 # Just use the original function
@@ -91,3 +90,16 @@ def cacheable_function_with_export(func_name, shape_struct, vjp_order = 0, skip_
         return wrapper
 
     return decorator
+
+def map_shape_struct_dict_to_jax_shape(node, scope):
+    if isinstance(node, tuple) and len(node) == 2 and not isinstance(node[0], tuple):
+        value, dtype = node
+        shape_poly = export.symbolic_shape(shape_spec=value, scope=scope)
+        return jax.ShapeDtypeStruct(shape_poly, dtype=dtype)
+    elif isinstance(node, dict):
+        return tuple(map_shape_struct_dict_to_jax_shape(v, scope) for v in node.values())
+    elif isinstance(node, (list, tuple)):
+        return type(node)(map_shape_struct_dict_to_jax_shape(v, scope) for v in node)
+    else:
+        return node
+

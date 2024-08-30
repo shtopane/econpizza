@@ -5,6 +5,8 @@ import jax
 import time
 import jax.numpy as jnp
 from grgrjax import jvp_vmap, vjp_vmap, val_and_jacfwd
+
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
 from .het_agent_base_funcs import *
 from ..utilities import grids, dists, interp
 
@@ -59,6 +61,23 @@ def func_forw_stst_generic(decisions_outputs, tol, maxit, grids, transition, ind
 #  mapping[1] (27, 18) (c, a)
 #  mapping[2] (36, 45) (d, b)
 #  mapping[3] (27, 45) (c, b)
+
+# TypeError: can't apply forward-mode autodiff (jvp) to a custom_vjp function.
+# Even though it's exported successfully
+# @cacheable_function_with_export(
+#     "func_pre_stst",
+#     {
+#         "x": ("a", jnp.float64),
+#         "fixed_values": ("b", jnp.float64),
+#         "mapping": (
+#             ("d,a", jnp.float64),
+#             ("c,a", jnp.float64),
+#             ("d,b", jnp.float64),
+#             ("c,b", jnp.float64),
+#         ),
+#     },
+#     export_kwargs=True,
+# )
 def func_pre_stst(x, fixed_values, mapping):
     # translate init guesses & fixed values to vars & pars
     x2var, x2par, fixed2var, fixed2par = mapping
@@ -71,7 +90,7 @@ def func_pre_stst(x, fixed_values, mapping):
 # Partial(<function func_eqns
 # TODO: [function]
 def func_stst_rep_agent(y, func_pre_stst, func_eqns):
-    x, par = func_pre_stst(y)
+    x, par = func_pre_stst(x=y)
     x = x[..., None]
     return func_eqns(x, x, x, x, pars=par), None
 
@@ -79,8 +98,7 @@ def func_stst_rep_agent(y, func_pre_stst, func_eqns):
 # other inputs are partials 
 # TODO: [function]
 def func_stst_het_agent(y, func_pre_stst, find_stat_wf, func_forw_stst, func_eqns):
-
-    x, par = func_pre_stst(y)
+    x, par = func_pre_stst(x=y)
     x = x[..., None]
 
     wf, decisions_output, cnt_backw = find_stat_wf(
