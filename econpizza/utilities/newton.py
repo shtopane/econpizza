@@ -9,6 +9,8 @@ from functools import partial
 from jax._src.lax.linalg import lu_solve
 from grgrjax import callback_func, amax, newton_jax_jit
 
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
+
 # Side-effect, not jittable
 def callback_with_damp(cnt, err, fev, err_inner, dampening, ltime, verbose):
     inner = f' | inner {err_inner:.2e}'
@@ -88,6 +90,14 @@ def sweep_tridiag_down(val, i):
 # val[0] float64(199,36,36)
 # val[1] float64(199,36)
 # val[2] float64(36)
+@cacheable_function_with_export("sweep_tridiag_up", {
+    "val": (
+        ("a, b, b", jnp.float64),
+        ("a, b", jnp.float64),
+        ("b", jnp.float64),
+    ),
+    "i": ("", jnp.int64)
+})
 def sweep_tridiag_up(val, i):
     forward_mat, fvals, fval = val
     # go backwards in time
