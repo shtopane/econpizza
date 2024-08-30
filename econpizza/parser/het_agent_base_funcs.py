@@ -6,6 +6,8 @@ import jax.numpy as jnp
 from jax._src.typing import Array
 from typing import Callable
 
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
+
 # TODO:[caching] this as well?
 
 # @see backwards_sweep_stst
@@ -52,6 +54,14 @@ def _backwards_step(carry, i):
 # pars (d, )
 # stst (a, )
 # wfSS (1, 4, 50) (e, f, g )
+# @cacheable_function_with_export("backwards_sweep", {
+#     "x": ("a*b", jnp.float64),
+#     "x0": ("a", jnp.float64),
+#     "shocks": ("c, b", jnp.float64),
+#     "pars": ("d", jnp.int64),
+#     "stst": ("a", jnp.float64),
+#     "wfSS": ("e, f, g", jnp.float64)
+# })
 def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array, wfSS: Array, horizon: int, func_backw: Callable, return_wf=False) -> Array:
 
     X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
