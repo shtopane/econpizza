@@ -36,7 +36,16 @@ def accumulate(i_and_j: Array, carry: (Array, Array)) -> (Array, int):
 # [28,28,1]
 # [28,199,4,3,10,20] <- dimensions mismatch
 # [4,3,10,20,199,28] <- dimensions mismatch
-@jax.jit
+@cacheable_function_with_export("get_stst_jacobian_jit", {
+    "derivatives": (
+        (("a, a, 1", jnp.float64),
+        ("a, a, 1", jnp.float64),
+        ("a, a, 1", jnp.float64)),
+        ("a, b, c, d, e", jnp.float64),
+        ("c, d, e, b, a", jnp.float64),
+    ),
+    "horizon": ("", jnp.int64)
+})
 def get_stst_jacobian_jit(derivatives, horizon):
     # load derivatives
     (jac_f2xLag, jac_f2x, jac_f2xPrime), jac_f2do, jac_do2x = derivatives
