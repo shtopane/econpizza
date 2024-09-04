@@ -11,7 +11,11 @@ from .dists import stationary_distribution
 # Issue with scalars in symbolic shapes, maybe skip or work more on it later
 # log_grid_shape = {"amax": ((), jnp.int64), "n": ((), jnp.int64), "amin": ((), jnp.float64)}
 # scalars float(passed as int), int and float
-# @cacheable_function_with_export("log_grid", log_grid_shape, skip_jitting=True)
+# @cacheable_function_with_export("log_grid", {
+#     "amax": ("", jnp.int64),
+#     "n": ("", jnp.int64),
+#     "amin": ("", jnp.float64)
+# })
 # @partial(jax.jit, static_argnums=(1,))
 def log_grid(amax, n, amin=0):
     """Create grid between amin and amax that is equidistant in logs."""
@@ -31,7 +35,7 @@ def variance(x, pi):
     return jnp.sum(pi * (x - jnp.sum(pi * x)) ** 2)
 
 # float, float, int
-# @partial(jax.jit, static_argnums=(2,))
+# Not jittable
 def markov_rouwenhorst(rho, sigma, N):
     """Rouwenhorst method analog to markov_tauchen"""
 
