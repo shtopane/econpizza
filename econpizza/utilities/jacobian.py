@@ -6,7 +6,7 @@ from jax._src.api import partial
 from jax._src.typing import Array
 from grgrjax import jax_print
 
-from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
+from .cache_decorator import cacheable_function_with_export
 
 
 def accumulate(i_and_j: Array, carry: (Array, Array)) -> (Array, int):

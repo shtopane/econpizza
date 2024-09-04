@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from jax._src.lax.linalg import lu_solve
 from grgrjax import callback_func, amax, newton_jax_jit
 
-from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
+from .cache_decorator import cacheable_function_with_export
 
 def callback_with_damp(cnt, err, fev, err_inner, dampening, ltime, verbose):
     inner = f' | inner {err_inner:.2e}'
