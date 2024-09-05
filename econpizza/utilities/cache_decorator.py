@@ -18,7 +18,7 @@ def export_and_serialize(
     vjp_order,
     skip_jitting,
     export_with_kwargs=False,
-    reuse_first_item_scope=False,
+    reuse_first_item_scope=False
 ):
     """
     Export and serialize a function with given symbolic shapes.
@@ -33,41 +33,40 @@ def export_and_serialize(
     Returns:
         function: The exported and serialized function ready to be called.
     """
-
+    # TODO: 3 Case with constraints. symbolic shapes with constraints cannot pass scope.
     if reuse_first_item_scope == True:
         poly_args = _prepare_poly_args_with_first_item(shape_struct)
     else:
         scope = export.SymbolicScope()
         poly_args = map_shape_struct_dict_to_jax_shape(shape_struct, scope)
 
+    # TODO: 1 Case with function already jitted. Support for static_argnums
     function_to_export = func if skip_jitting else jax.jit(func)
 
+    # TODO: 2 Case where the function should be exported only with keyword arguments
+    # This supports the exported function to be used in transformations like Partial
     if export_with_kwargs == True:
         poly_kwargs = _prepare_poly_kwargs(shape_struct, kwargs, poly_args)
-
+        
         exported_func: export.Exported = export.export(function_to_export)(
             **poly_kwargs
         )
     else:
         exported_func: export.Exported = export.export(function_to_export)(*poly_args)
 
+    # Save exported artifact
     serialized_path = os.path.join(ep.config.econpizza_cache_folder, f"{func_name}")
     serialized: bytearray = exported_func.serialize(vjp_order=vjp_order)
 
-    # Save the serialized object to the serialized path
     with open(serialized_path, "wb") as file:
         file.write(serialized)
 
+    
     return exported_func.call
 
 
 def cacheable_function_with_export(
-    func_name,
-    shape_struct,
-    vjp_order=0,
-    skip_jitting=False,
-    export_with_kwargs=False,
-    reuse_first_item_scope=False,
+    func_name, shape_struct, alternative_shape_struct=None, vjp_order=0, skip_jitting=False, export_with_kwargs=False, reuse_first_item_scope=False
 ):
     """
     Decorator to replace function with exported and cached version if caching is enabled.
@@ -82,43 +81,76 @@ def cacheable_function_with_export(
         function: The decorated function which uses the cached version if available, otherwise the original function.
 
     Usage:
-      @cacheable_function_with_export("f", {"x": ("a,", jnp.float64)}
+        @cacheable_function_with_export("f", {"x": ("a,", jnp.float64)})
+        def f(x):
+            ...
     """
-
     def decorator(func):
         def wrapper(*args, **kwargs):
             if ep.config.enable_persistent_cache == True:
+                def _get_func_name(shape_mismatch: bool):
+                    return f"{func_name}_alt" if shape_mismatch else func_name
+                
+                def _get_shape_struct(shape_mismatch: bool):
+                    return alternative_shape_struct if shape_mismatch and alternative_shape_struct else shape_struct
 
-                serialized_path = os.path.join(
-                    ep.config.econpizza_cache_folder, f"{func_name}.bin"
-                )
-                serialized = _read_serialized_function(serialized_path)
-
+                # TODO: Case 1 & 2 - static_argnums and export with keywords
                 # kwargs should only be the ones in shape_struct, if len(kwargs) > len(shape_struct)
                 # only arguments from shape_struct should be left out
-                filtered_kwargs = {
-                    key: value for key, value in kwargs.items() if key in shape_struct
-                }
+                filtered_kwargs = {key: value for key, value in kwargs.items() if key in shape_struct}
+
+                # First, check if the function is already serialized
+                # If the function is serialized, deserialize it and return the .call
+                # Else, export, serialize and return the call.
+                serialized_path = os.path.join(
+                    ep.config.econpizza_cache_folder, f"{func_name}"
+                )
+                serialized = _read_serialized_function(serialized_path)
+                serialized_alt_path = os.path.join(
+                    ep.config.econpizza_cache_folder, f"{func_name}_alt"
+                )
+                serialized_alt = _read_serialized_function(serialized_alt_path)
+
+                if serialized_alt:
+                    cached_func = export.deserialize(serialized_alt)
+                    args_shapes, exported_shapes = _get_args_exported_shapes(args, cached_func)
+                    
+                    # If the args and specs match, call alternative export
+                    if _check_shape_dim_size(args_shapes, exported_shapes) == True:
+                        return cached_func.call(*args, **filtered_kwargs)
+                    else:
+                        pass
+
+                shape_mismatch = False
+                if serialized and alternative_shape_struct is not None and not serialized_alt:
+                    cached_func = export.deserialize(serialized)
+                    # Check shapes of cached_func.in_avals and args
+                    if not export_with_kwargs:
+                        args_shapes, exported_shapes = _get_args_exported_shapes(args, cached_func)
+
+                        # Dimensions mismatch
+                        if _check_shape_dim_size(args_shapes, exported_shapes) == False:
+                            serialized = None
+                            shape_mismatch = True
+
 
                 if serialized:
                     cached_func = export.deserialize(serialized)
                     return cached_func.call(*args, **filtered_kwargs)
                 else:
-                    # Export, serialize, and cache the function
                     cached_func = export_and_serialize(
-                        args,
-                        kwargs,
-                        func,
-                        func_name,
-                        shape_struct,
-                        vjp_order,
-                        skip_jitting,
-                        export_with_kwargs,
-                        reuse_first_item_scope,
+                        args=args,
+                        kwargs=kwargs,
+                        func=func,
+                        func_name=_get_func_name(shape_mismatch),
+                        shape_struct=_get_shape_struct(shape_mismatch),
+                        vjp_order=vjp_order,
+                        skip_jitting=skip_jitting,
+                        export_with_kwargs=export_with_kwargs,
+                        reuse_first_item_scope=reuse_first_item_scope
                     )
                     return cached_func(*args, **filtered_kwargs)
             else:
-                # Just use the original function
                 return func(*args, **kwargs)
 
         return wrapper
@@ -139,7 +171,8 @@ def map_shape_struct_dict_to_jax_shape(node, scope):
     """
     if (
         isinstance(node, tuple)
-        and (len(node) == 2 or len(node) == 3)
+        and (len(node) == 2
+        or len(node) == 3)
         and not isinstance(node[0], tuple)
     ):
         if len(node) == 3:
@@ -175,33 +208,22 @@ def _read_serialized_function(serialized_path):
         serialized = None
 
     return serialized
-
-
+                
 def _prepare_poly_args_with_first_item(shape_struct):
-    first_item_key, first_item_value = next(iter(shape_struct.items()))
-    first_item_poly_args, first_item_scope = map_shape_struct_dict_to_jax_shape(
-        first_item_value, scope=None
-    )
+     first_item_key, first_item_value = next(iter(shape_struct.items()))
+     first_item_poly_args, first_item_scope = map_shape_struct_dict_to_jax_shape(first_item_value, scope=None)
+        
+     rest_items = {key: value for key, value in shape_struct.items() if key != first_item_key}
+     rest_item_poly_args = map_shape_struct_dict_to_jax_shape(rest_items, scope=first_item_scope)
 
-    rest_items = {
-        key: value for key, value in shape_struct.items() if key != first_item_key
-    }
-    rest_item_poly_args = map_shape_struct_dict_to_jax_shape(
-        rest_items, scope=first_item_scope
-    )
-
-    poly_args = (first_item_poly_args,) + rest_item_poly_args
-
-    assert len(poly_args) == len(
-        shape_struct
-    ), "Shape poly arguments are not the same as originally provided in shape_struct"
-    return poly_args
-
+     poly_args = (first_item_poly_args,) + rest_item_poly_args
+     
+     assert len(poly_args) == len(shape_struct), "Shape poly arguments are not the same as originally provided in shape_struct"
+     return poly_args
 
 def _prepare_poly_kwargs(shape_struct, kwargs, poly_args):
     func_kwargs_names = list(shape_struct.keys())
     poly_kwargs = {key: value for key, value in zip(func_kwargs_names, poly_args)}
-    # poly_kwargs.update(kwargs)
 
     for key, value in kwargs.items():
         if key not in poly_kwargs:
@@ -210,3 +232,18 @@ def _prepare_poly_kwargs(shape_struct, kwargs, poly_args):
     assert len(poly_kwargs) == len(kwargs), "Keyword argument missing in shape poly"
 
     return poly_kwargs
+
+
+def _check_shape_dim_size(current_arg_shapes: list[tuple], exported_args_shapes: list[tuple]):
+    for current_shape, exported_shape in zip(current_arg_shapes, exported_args_shapes):
+        if len(current_shape) != len(exported_shape): return False
+    
+    return True
+
+def _get_args_exported_shapes(args, exported):
+    args_flatten, _ = jax.tree_util.tree_flatten(args)
+                        
+    args_shapes = [arg.shape if hasattr(arg, 'shape') else () for arg in args_flatten]
+    exported_shapes = [exported.shape if hasattr(exported, 'shape') else () for exported in exported.in_avals]
+
+    return args_shapes, exported_shapes
