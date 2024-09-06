@@ -33,18 +33,11 @@ def export_and_serialize(
     Returns:
         function: The exported and serialized function ready to be called.
     """
-    # TODO: 3 Case with constraints. symbolic shapes with constraints cannot pass scope.
-    if reuse_first_item_scope == True:
-        poly_args = _prepare_poly_args_with_first_item(shape_struct)
-    else:
-        scope = export.SymbolicScope()
-        poly_args = map_shape_struct_dict_to_jax_shape(shape_struct, scope)
+    scope = export.SymbolicScope()
+    poly_args = map_shape_struct_dict_to_jax_shape(shape_struct, scope)
 
-    # TODO: 1 Case with function already jitted. Support for static_argnums
     function_to_export = func if skip_jitting else jax.jit(func)
 
-    # TODO: 2 Case where the function should be exported only with keyword arguments
-    # This supports the exported function to be used in transformations like Partial
     if export_with_kwargs == True:
         poly_kwargs = _prepare_poly_kwargs(shape_struct, kwargs, poly_args)
         
@@ -57,7 +50,7 @@ def export_and_serialize(
     # Save exported artifact
     serialized_path = os.path.join(ep.config.econpizza_cache_folder, f"{func_name}")
     serialized: bytearray = exported_func.serialize(vjp_order=vjp_order)
-
+    
     with open(serialized_path, "wb") as file:
         file.write(serialized)
 
@@ -94,9 +87,6 @@ def cacheable_function_with_export(
                 def _get_shape_struct(shape_mismatch: bool):
                     return alternative_shape_struct if shape_mismatch and alternative_shape_struct else shape_struct
 
-                # TODO: Case 1 & 2 - static_argnums and export with keywords
-                # kwargs should only be the ones in shape_struct, if len(kwargs) > len(shape_struct)
-                # only arguments from shape_struct should be left out
                 filtered_kwargs = {key: value for key, value in kwargs.items() if key in shape_struct}
 
                 # First, check if the function is already serialized
@@ -106,6 +96,7 @@ def cacheable_function_with_export(
                     ep.config.econpizza_cache_folder, f"{func_name}"
                 )
                 serialized = _read_serialized_function(serialized_path)
+                # Load alternative function serialized object
                 serialized_alt_path = os.path.join(
                     ep.config.econpizza_cache_folder, f"{func_name}_alt"
                 )
@@ -209,18 +200,6 @@ def _read_serialized_function(serialized_path):
 
     return serialized
                 
-def _prepare_poly_args_with_first_item(shape_struct):
-     first_item_key, first_item_value = next(iter(shape_struct.items()))
-     first_item_poly_args, first_item_scope = map_shape_struct_dict_to_jax_shape(first_item_value, scope=None)
-        
-     rest_items = {key: value for key, value in shape_struct.items() if key != first_item_key}
-     rest_item_poly_args = map_shape_struct_dict_to_jax_shape(rest_items, scope=first_item_scope)
-
-     poly_args = (first_item_poly_args,) + rest_item_poly_args
-     
-     assert len(poly_args) == len(shape_struct), "Shape poly arguments are not the same as originally provided in shape_struct"
-     return poly_args
-
 def _prepare_poly_kwargs(shape_struct, kwargs, poly_args):
     func_kwargs_names = list(shape_struct.keys())
     poly_kwargs = {key: value for key, value in zip(func_kwargs_names, poly_args)}
