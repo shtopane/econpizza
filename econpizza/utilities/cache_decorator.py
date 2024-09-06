@@ -17,8 +17,7 @@ def export_and_serialize(
     shape_struct,
     vjp_order,
     skip_jitting,
-    export_with_kwargs=False,
-    reuse_first_item_scope=False
+    export_with_kwargs=False
 ):
     """
     Export and serialize a function with given symbolic shapes.
@@ -59,7 +58,7 @@ def export_and_serialize(
 
 
 def cacheable_function_with_export(
-    func_name, shape_struct, alternative_shape_struct=None, vjp_order=0, skip_jitting=False, export_with_kwargs=False, reuse_first_item_scope=False
+    func_name, shape_struct, alternative_shape_struct=None, vjp_order=0, skip_jitting=False, export_with_kwargs=False
 ):
     """
     Decorator to replace function with exported and cached version if caching is enabled.
@@ -137,8 +136,7 @@ def cacheable_function_with_export(
                         shape_struct=_get_shape_struct(shape_mismatch),
                         vjp_order=vjp_order,
                         skip_jitting=skip_jitting,
-                        export_with_kwargs=export_with_kwargs,
-                        reuse_first_item_scope=reuse_first_item_scope
+                        export_with_kwargs=export_with_kwargs
                     )
                     return cached_func(*args, **filtered_kwargs)
             else:
