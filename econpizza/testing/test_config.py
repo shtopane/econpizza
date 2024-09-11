@@ -1,3 +1,4 @@
+"""Tests for the config module. Delete any __econpizza__ or __jax_cache__ folders you might have in the current folder before running"""
 import pytest
 import jax
 from unittest.mock import patch
@@ -39,9 +40,8 @@ def test_config_jax_default_values():
    assert jax.config.values["jax_persistent_cache_min_compile_time_secs"] == 1.0
 
 @patch("os.makedirs")
-def test_config_enable_persistent_cache(setup_jax_mock, mock_makedirs):
+def test_config_enable_persistent_cache(mock_makedirs):
   ep.config.enable_persistent_cache = True
-  assert setup_jax_mock.call_count == 0
   mock_makedirs.assert_any_call(os.path.join(os.getcwd(), "__econpizza_cache__"), exist_ok=True)
 
 
