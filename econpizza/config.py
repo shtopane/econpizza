@@ -7,8 +7,9 @@ class EconPizzaConfig(dict):
     def __init__(self, *args, **kwargs):
         super(EconPizzaConfig, self).__init__(*args, **kwargs)
         self._enable_persistent_cache = False
-        self._econpizza_cache_folder = "__econpizza_cache__"
+        self._enable_jax_persistent_cache = False
         self._jax_cache_folder = "__jax_cache__"
+        self._econpizza_cache_folder = "__econpizza_cache__"
 
     @property
     def enable_persistent_cache(self):
@@ -18,6 +19,15 @@ class EconPizzaConfig(dict):
     def enable_persistent_cache(self, value):
         self._enable_persistent_cache = value
         self.setup_persistent_cache()
+
+    @property
+    def enable_jax_persistent_cache(self):
+        return self._enable_jax_persistent_cache
+
+    @enable_jax_persistent_cache.setter
+    def enable_jax_persistent_cache(self, value):
+        self._enable_jax_persistent_cache = value
+        self.setup_persistent_cache_jax()
 
     @property
     def jax_cache_folder(self):
@@ -49,8 +59,9 @@ class EconPizzaConfig(dict):
         return folder_path
 
     def setup_persistent_cache(self):
-        """Create folders for JAX and EconPizza cache.
-        By default, they are created in callee working directory.
+        """Create folder the econpizza cache. 
+        Exported functions via JAX export will be saved there.
+        By default, it is created in callee working directory.
         """
         if self.enable_persistent_cache == True:
             if not os.path.exists(self.econpizza_cache_folder):
@@ -59,8 +70,12 @@ class EconPizzaConfig(dict):
             else:
                 folder_path_pizza = self.econpizza_cache_folder
 
-            # Jax cache is enabled by the used via JAX API. In this case we should not set another folder
-            if jax.config.jax_compilation_cache_dir is None:
+    def setup_persistent_cache_jax(self):
+        """Setup JAX persistent cache.
+        By default, it is created in callee working directory.
+        """
+        if self.enable_jax_persistent_cache == True:
+            if jax.config.jax_compilation_cache_dir is None and not os.path.exists(self.jax_cache_folder):
                 folder_path_jax = self._create_cache_dir(self.jax_cache_folder)
                 jax.config.update("jax_compilation_cache_dir", folder_path_jax)
                 jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
