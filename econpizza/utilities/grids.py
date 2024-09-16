@@ -1,11 +1,22 @@
 
 """Grids and Markov chains"""
+from functools import partial
 
 import jax
 import jax.numpy as jnp
+
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
 from .dists import stationary_distribution
 
+# Issue with scalars in symbolic shapes, maybe skip or work more on it later
+# log_grid_shape = {"amax": ((), jnp.int64), "n": ((), jnp.int64), "amin": ((), jnp.float64)}
 # scalars float(passed as int), int and float
+# @cacheable_function_with_export("log_grid", {
+#     "amax": ("", jnp.int64),
+#     "n": ("", jnp.int64),
+#     "amin": ("", jnp.float64)
+# })
+# @partial(jax.jit, static_argnums=(1,))
 def log_grid(amax, n, amin=0):
     """Create grid between amin and amax that is equidistant in logs."""
     pivot = jnp.abs(amin) + 0.25
@@ -24,6 +35,7 @@ def variance(x, pi):
     return jnp.sum(pi * (x - jnp.sum(pi * x)) ** 2)
 
 # float, float, int
+# Not jittable
 def markov_rouwenhorst(rho, sigma, N):
     """Rouwenhorst method analog to markov_tauchen"""
 
@@ -51,8 +63,14 @@ def markov_rouwenhorst(rho, sigma, N):
     y = rouwenhorst_grid_from_stationary(sigma, pi)
     return y, pi, Pi
 
+
+# Nope
+# num = core.concrete_or_error(operator.index, num, "'num' argument of jnp.linspace")
+# TypeError: '_DimExpr' object cannot be interpreted as an integer
 # sigma: float
 # hank: stationary_distribution(4,), hank2: stationary_distribution(3,) -> stationary_distribution(a,)
+# @cacheable_function_with_export("rouwenhorst_grid_from_stationary", {"sigma": ("", jnp.float64), "stationary_distribution": ("a, ", jnp.float64)})
+# @partial(jax.jit, static_argnums=(0,))
 def rouwenhorst_grid_from_stationary(sigma, stationary_distribution):
     s = jnp.linspace(-1, 1, len(stationary_distribution))
     s *= (sigma / jnp.sqrt(variance(s, stationary_distribution)))

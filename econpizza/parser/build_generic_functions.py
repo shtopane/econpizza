@@ -5,6 +5,10 @@ import jax
 import time
 import jax.numpy as jnp
 from grgrjax import jvp_vmap, vjp_vmap, val_and_jacfwd
+
+from functools import partial
+
+from econpizza.utilities.export.cache_decorator import cacheable_function_with_export
 from .het_agent_base_funcs import *
 from ..utilities import grids, dists, interp
 
@@ -15,8 +19,25 @@ from ..utilities import grids, dists, interp
 # grids <- python list but grids[0] (50, ) (HANK), (10, ) for [0] and (20, ) for [1] (HANK2)
 # transition (4, 4) (HANK) (3, 3) (HANK2)
 # indices <- python list [0] (HANK) [1, 0] (HANK2)
+# TODO: this function is called only once.
+# TODO: called in forwards_sweep, which is called in second_sweep, which is called in vjp_map
+#  Batching rule for 'call_exported' not implemented
+# @cacheable_function_with_export("func_forw_generic", {
+#     "distributions": ("1, e, f", jnp.float64),
+#     "decisions_outputs": ("2, e, f", jnp.float64),
+#     "grids": (
+#         ("f", jnp.float64)
+#     ),
+#     "transition": ("e, e", jnp.float64),
+#     "indices": ("g", jnp.int64)
+# }, export_with_kwargs=True)
+# @partial(jax.jit, static_argnames=("grids", "transition", "indices"))
 def func_forw_generic(distributions, decisions_outputs, grids, transition, indices):
-    # print(f"distributions: {distributions.shape}, decisions_outputs: {decisions_outputs.shape}, grids: {grids.shape}, transition: {transition.shape}, indices: {indices.shape}")
+    # print(distributions.shape, distributions.dtype)
+    # print(decisions_outputs.shape, decisions_outputs.dtype)
+    # print(len(grids), grids[0].shape, grids[0].dtype)
+    # print(transition.shape, transition.dtype)
+    # print(len(indices), indices, indices.shape, indices.dtype)
     # prototype for one distribution
     # should be a for-loop for more than one distribution
     (dist, ) = distributions
@@ -34,6 +55,7 @@ def func_forw_generic(distributions, decisions_outputs, grids, transition, indic
         dist = dists.expect_transition(transition.T, forwarded_dist)
     return jnp.array((dist, ))
 
+# TODO: called in func_stst_het_agent -> val_and_jacfwd -> Not going to work
 # decisions_outputs (2, 4, 50) (HANK) (4, 3, 10, 20) (HANK2)
 # grids <- python list but grids[0] (50, ) (HANK), (10, ) for [0] and (20, ) for [1] (HANK2)
 # transition (4, 4) (HANK) (3, 3) (HANK2)
@@ -60,6 +82,23 @@ def func_forw_stst_generic(decisions_outputs, tol, maxit, grids, transition, ind
 #  mapping[1] (27, 18) (c, a)
 #  mapping[2] (36, 45) (d, b)
 #  mapping[3] (27, 45) (c, b)
+
+# TypeError: can't apply forward-mode autodiff (jvp) to a custom_vjp function.
+# Even though it's exported successfully
+# @cacheable_function_with_export(
+#     "func_pre_stst",
+#     {
+#         "x": ("a", jnp.float64),
+#         "fixed_values": ("b", jnp.float64),
+#         "mapping": (
+#             ("d,a", jnp.float64),
+#             ("c,a", jnp.float64),
+#             ("d,b", jnp.float64),
+#             ("c,b", jnp.float64),
+#         ),
+#     },
+#     export_kwargs=True,
+# )
 def func_pre_stst(x, fixed_values, mapping):
     # translate init guesses & fixed values to vars & pars
     x2var, x2par, fixed2var, fixed2par = mapping
@@ -71,17 +110,18 @@ def func_pre_stst(x, fixed_values, mapping):
 # func_pre_stst Partial(<function func_pre_stst
 # Partial(<function func_eqns
 # TODO: [function]
+# TODO: called in val_and_jacfwd -> Not going to work
 def func_stst_rep_agent(y, func_pre_stst, func_eqns):
-    x, par = func_pre_stst(y)
+    x, par = func_pre_stst(x=y)
     x = x[..., None]
     return func_eqns(x, x, x, x, pars=par), None
 
 # y (7, ) (HANK) (20, ) HANK2
 # other inputs are partials 
 # TODO: [function]
+# TODO: called in val_and_jacfwd -> Not going to work
 def func_stst_het_agent(y, func_pre_stst, find_stat_wf, func_forw_stst, func_eqns):
-
-    x, par = func_pre_stst(y)
+    x, par = func_pre_stst(x=y)
     x = x[..., None]
 
     wf, decisions_output, cnt_backw = find_stat_wf(
@@ -98,18 +138,21 @@ def func_stst_het_agent(y, func_pre_stst, find_stat_wf, func_forw_stst, func_eqn
 
     return out, aux
 
-# Export these directly?
-# Here vjp_order should be 1?
+# Nope
 vaj_stst_het_agent = jax.jit(val_and_jacfwd(
     func_stst_het_agent, argnums=0, has_aux=True))
 vaj_stst_rep_agent = jax.jit(val_and_jacfwd(
     func_stst_rep_agent, argnums=0, has_aux=True))
 
 # TODO: [function]
+# shocks is a python list and cannot be labeled as static it might change
+# @cacheable_function_with_export("get_func_stst", {
+#     "shocks": ("")
+# }, export_with_kwargs=True)
+# @partial(jax.jit, static_argnames=("func_backw", "func_forw_stst", "func_eqns", "shocks"))
 def get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init, fixed_values, pre_stst_mapping, tol_backw, maxit_backw, tol_forw, maxit_forw):
     """Get a function that evaluates the steady state
     """
-
     zshock = jnp.zeros(len(shocks))
     partial_pre_stst = jax.tree_util.Partial(
         func_pre_stst, fixed_values=fixed_values, mapping=pre_stst_mapping)
@@ -165,6 +208,15 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
     return f2X, f2do, do2x
 
 # TODO: [function]
+# raise NotImplementedError(f"serializing PyTreeDef {node_data}")
+# NotImplementedError: serializing PyTreeDef (<class 'jax.tree_util.Partial'>, <function func_backw at 0x1659cd080>)
+# @cacheable_function_with_export("get_stacked_func_het_agents", {
+#     "stst": ("a,", jnp.float64),
+#     "wfSS": ("1, e, f", jnp.float64),
+#     "horizon": ("", jnp.int64),
+#     "nvars": ("", jnp.int64)
+# }, export_with_kwargs=True,  skip_jitting=True)
+# @partial(jax.jit, static_argnames=("func_backw", "func_forw", "func_eqns"))
 def get_stacked_func_het_agents(func_backw, func_forw, func_eqns, stst, wfSS, horizon, nvars):
     """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations.
     """
