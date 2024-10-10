@@ -3,7 +3,10 @@
 import econpizza as ep
 import os
 
-from jax import export
+try:
+    from jax import export
+except:
+    export = None
 
 import jax.numpy as jnp
 import jax
@@ -80,6 +83,8 @@ def cacheable_function_with_export(
     def decorator(func):
         def wrapper(*args, **kwargs):
             if ep.config.enable_persistent_cache == True:
+                _check_jax_export_dependencies_and_raise()
+
                 def _get_func_name(shape_mismatch: bool):
                     return f"{func_name}_alt" if shape_mismatch else func_name
                 
@@ -224,3 +229,16 @@ def _get_args_exported_shapes(args, exported):
     exported_shapes = [exported.shape if hasattr(exported, 'shape') else () for exported in exported.in_avals]
 
     return args_shapes, exported_shapes
+
+    
+def _check_jax_export_dependencies_and_raise():
+    try:
+        import absl
+    except ImportError as e:
+        raise ImportError('Please install absl-py in order to use jax export')
+    
+    try:
+        import flatbuffers
+    except ImportError as e:
+        raise ImportError('Please install flatbuffers in order to use jax export')
+
