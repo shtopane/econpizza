@@ -44,7 +44,6 @@ def test_config_enable_jax_persistent_cache(mock_jax_update, mock_makedirs):
   mock_makedirs.assert_any_call(os.path.join(os.getcwd(), "__jax_cache__"), exist_ok=True)
 
   mock_jax_update.assert_any_call("jax_compilation_cache_dir", os.path.join(os.getcwd(), "__jax_cache__"))
-  mock_jax_update.assert_any_call("jax_persistent_cache_min_entry_size_bytes", -1)
   mock_jax_update.assert_any_call("jax_persistent_cache_min_compile_time_secs", 0)
 
 @patch("os.makedirs")
@@ -71,7 +70,7 @@ def test_jax_cache_folder_not_created_second_time(mock_jax_update, mock_makedirs
    # When called for the first time, a cache folder should be created(default is __jax_cache__)
    ep.config["enable_jax_persistent_cache"] = True
    mock_makedirs.assert_any_call(os.path.join(os.getcwd(), "__jax_cache__"), exist_ok=True)
-   assert mock_jax_update.call_count == 3
+   assert mock_jax_update.call_count == 2
    # Now reset the mock so that the calls are 0 again.
    mock_makedirs.reset_mock()
    mock_jax_update.reset_mock()

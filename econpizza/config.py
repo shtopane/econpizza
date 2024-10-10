@@ -35,7 +35,6 @@ class EconPizzaConfig(dict):
         if jax.config.jax_compilation_cache_dir is None and not os.path.exists(self.jax_cache_folder):
             folder_path_jax = self._create_cache_dir(self.jax_cache_folder)
             jax.config.update("jax_compilation_cache_dir", folder_path_jax)
-            jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
             jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
             self.jax_cache_folder = folder_path_jax
 
